@@ -34,7 +34,6 @@ namespace OmniaMigrationTool
                         FROM [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].AttributeKeys ak
                         INNER JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].MisEntityTypes t ON ak.MisEntityTypeID = t.ID
                         INNER JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].vwAttributeValues av ON ak.ID = av.AttributeKeyID
-                        INNER JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].[MisEntities] me ON me.ID = av.[Value]
                         LEFT JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].RelationalRules rr ON ak.ID = rr.PKID
                         LEFT JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].RelationalRuleInstances rri on rr.ID = rri.RelationalRuleID and rri.PKID = av.id
                         LEFT JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].[MisEntities] foreignme on rri.FKID = foreignme.ID
@@ -65,9 +64,12 @@ namespace OmniaMigrationTool
                         {
                             while (await reader.ReadAsync())
                             {
-                                var mapping = new Dictionary<string, object>();
-                                mapping.Add("_code", reader.GetString(reader.GetOrdinal("Code")));
-                                mapping.Add("_name", reader.GetString(reader.GetOrdinal("Name")));
+                                var mapping = new Dictionary<string, object>
+                                {
+                                    {"_code", reader.GetString(reader.GetOrdinal("Code"))},
+                                    {"_name", reader.GetString(reader.GetOrdinal("Name"))},
+                                    {"usesPreviousYearHolidays", false}
+                                };
 
                                 //if (!reader.IsDBNull(reader.GetOrdinal("PrevYearHolidays")))
                                 //{
@@ -75,7 +77,6 @@ namespace OmniaMigrationTool
                                 //}
                                 //else
                                 //{
-                                mapping.Add("usesPreviousYearHolidays", false);
                                 //}
 
                                 if (!reader.IsDBNull(reader.GetOrdinal("Company")))
