@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.Extensions.CommandLineUtils;
+using OmniaMigrationTool.Extensions;
 
 namespace OmniaMigrationTool
 {
@@ -23,13 +24,24 @@ namespace OmniaMigrationTool
 
             app.Command("export", (command) =>
             {
-
                 command.Description = "Export data from source system.";
                 //command.HelpOption("-?|-h|--help");
 
                 command.OnExecute(() =>
                 {
                     AsyncMain(args).GetAwaiter().GetResult();
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
+
+            app.Command("import", (command) =>
+            {
+                command.Description = "Import data to destination system.";
+
+                command.OnExecute(() =>
+                {
+                    Import();
                     Console.ReadKey();
                     return 0;
                 });
@@ -83,7 +95,6 @@ namespace OmniaMigrationTool
                                 var sourceEntityId = reader.GetInt64(reader.GetOrdinal("ID"));
                                 var mapping = new Dictionary<string, object>
                                 {
-
                                     {"usesPreviousYearHolidays", false},
                                     {
                                         "EmployeeERPConfiguration", items.Where(i=>i.ParentId.Equals(sourceEntityId)).Select(i=>i.Data)
@@ -113,6 +124,37 @@ namespace OmniaMigrationTool
             }
         }
 
+        private static void Import()
+        {
+            var outputMessageBuilder = new StringBuilder();
+
+            var process = new Process
+            {
+                EnableRaisingEvents = true,
+                StartInfo = new ProcessStartInfo("cmd.exe")
+                {
+                    Arguments = @"/c ""SET PGPASSWORD=NB_2012#&& D:\GitProjects\MigrationTool\OmniaMigrationTool\Tools\psql.exe -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing -c ""\copy _0c010f91ae8842ac94de3dca692f2dad_business.employee FROM 'C:\Users\luisbarbosa\AppData\Local\Temp\tmp82CC.tmp\employees.csv' WITH DELIMITER ',' CSV HEADER""",
+                    //WindowStyle = ProcessWindowStyle.Hidden
+                    UseShellExecute = false,
+                    CreateNoWindow = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
+            process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
+
+            // Start process and handlers
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException(outputMessageBuilder.ToString());
+        }
+
         private static async Task<List<Item>> GetItems(SqlConnection conn)
         {
             var result = new List<Item>();
@@ -122,7 +164,7 @@ namespace OmniaMigrationTool
                         SELECT av.MisEntityID, ak.Name, coalesce(foreignme.code, av.VALUE) AS Code
                         FROM [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].AttributeKeys ak
                         INNER JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].MisEntityTypes t ON ak.MisEntityTypeID = t.ID
-                        INNER JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].vwAttributeValues av ON ak.ID = av.AttributeKeyID 
+                        INNER JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].vwAttributeValues av ON ak.ID = av.AttributeKeyID
                         --INNER JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].[MisEntities] me ON me.ID = av.[Value]
                         LEFT JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].RelationalRules rr ON ak.ID = rr.PKID
                         LEFT JOIN [5b59faa8-3e4c-4d3e-82c8-2aecd1207a70].RelationalRuleInstances rri on rr.ID = rri.RelationalRuleID and rri.PKID = av.id
@@ -178,6 +220,7 @@ namespace OmniaMigrationTool
             }
 
             public long ParentId { get; }
+
             public Dictionary<string, object> Data { get; }
         }
     }
