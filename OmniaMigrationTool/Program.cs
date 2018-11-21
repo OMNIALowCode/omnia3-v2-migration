@@ -42,9 +42,6 @@ namespace OmniaMigrationTool
                         PIVOT (MIN([Code]) FOR [Name] IN (Company, Primavera, OutOfOffice, PrevYearHolidays)) as pvt
                     ) AS eav ON eav.MisEntityID = me.ID", conn))
                 {
-                    //command.CommandType = CommandType.StoredProcedure;
-                    //command.Parameters.Add(new SqlParameter("@LastModifiedDate", modifiedLast));
-
                     stopwatch.Start();
 
                     try
