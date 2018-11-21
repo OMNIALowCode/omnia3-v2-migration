@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Omnia.Libraries.GenericExtensions;
+using System;
 using System.Linq;
 
 namespace OmniaMigrationTool.Queries
@@ -19,10 +20,11 @@ namespace OmniaMigrationTool.Queries
         };
 
         private const string EntityQueryTemplate =
-        @"SELECT me.* , a.*, eav.*
+        @"SELECT me.* , a.*, eav.* {4}
           FROM [{0}].[MisEntities] me
           INNER JOIN [{0}].[MisEntities_{1}] a on me.ID = a.ID
           INNER JOIN [{0}].MisEntityTypes t ON me.MisEntityTypeID = t.ID
+          {3}
           LEFT JOIN (SELECT * FROM (
                         SELECT av.MisEntityID, ak.Name, coalesce(foreignme.code, av.VALUE) AS Code
                         FROM [{0}].AttributeKeys ak
@@ -58,10 +60,27 @@ namespace OmniaMigrationTool.Queries
         WHERE t.Code = @code;";
 
         public static string EntityQuery(Guid tenant, string kind, string[] customAttributes)
-            => string.Format(EntityQueryTemplate, tenant, kind, string.Join(",", customAttributes.Where(c=> !EntitySystemAttributes.Contains(c))));
+        {
+            var customJoin = string.Empty;
+            var customSelect = string.Empty;
+            var attributesFromEav = customAttributes.Where(c => !EntitySystemAttributes.Contains(c))
+                .ToArray();
+            if (kind.EqualsIgnoringCase("Interaction"))
+            {
+                customJoin =
+                    $"INNER JOIN [{tenant}].MisEntities mcomp on a.CompanyID = mcomp.ID";
+                customSelect =
+                    ", mcomp.Code 'CompanyCode'";
+
+                attributesFromEav = attributesFromEav.Where(c => !c.Equals("CompanyCode")).ToArray();
+            }
+
+            return string.Format(EntityQueryTemplate, tenant, kind,
+                string.Join(",", attributesFromEav), customJoin, customSelect);
+        }
 
         public static string TransactionalEntityQuery(Guid tenant, string kind, string[] customAttributes)
-            => string.Format(TransactionalEntityQueryTemplate, tenant, kind, string.Join(",", 
+            => string.Format(TransactionalEntityQueryTemplate, tenant, kind, string.Join(",",
                 customAttributes.Where(c => !EntitySystemAttributes.Contains(c) && !TransactionalEntitySystemAttributes.Contains(c))));
 
     }
