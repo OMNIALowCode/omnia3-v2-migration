@@ -117,64 +117,100 @@ namespace OmniaMigrationTool
                 "Agent", "Company",
                 companyAttributes);
 
-            // COMPANY CONFIGURATIONS
+
+            // EXPENSE REPORT
             // ---------------------------------------------
 
-            var companyConfigFromCompanyAttributes = new List<EntityMapDefinition.AttributeMap>()
+            var expenseRefundRequestAttributes = new List<EntityMapDefinition.AttributeMap>()
             {
                 new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Name", "_name"),
-                new EntityMapDefinition.AttributeMap("Code", "Company"),
+                new EntityMapDefinition.AttributeMap("Amount", "_amount", EntityMapDefinition.AttributeMap.AttributeType.Decimal,EntityMapDefinition.AttributeMap.AttributeType.Decimal),
+                new EntityMapDefinition.AttributeMap("Quantity", "_quantity", EntityMapDefinition.AttributeMap.AttributeType.Decimal,EntityMapDefinition.AttributeMap.AttributeType.Decimal),
+                new EntityMapDefinition.AttributeMap("DateOccurred", "ExpenseDate", EntityMapDefinition.AttributeMap.AttributeType.Date,EntityMapDefinition.AttributeMap.AttributeType.Date),
+
+                //new EntityMapDefinition.AttributeMap("ResourceName"
+                new EntityMapDefinition.AttributeMap("ExpenseDetails","Details"),
+                //new EntityMapDefinition.AttributeMap("Description",""
+                //new EntityMapDefinition.AttributeMap("ResourceType
+                //new EntityMapDefinition.AttributeMap("FileUpload
+                new EntityMapDefinition.AttributeMap("LimitItem", "ItemLimit"),
+                //new EntityMapDefinition.AttributeMap("Incidence", ""
+                new EntityMapDefinition.AttributeMap("VatValue", "VAT"),
+                new EntityMapDefinition.AttributeMap("ERPCostCenter","CostCenter"),
+                new EntityMapDefinition.AttributeMap("ERPGeneralAccount","GeneralAccount"),
+                //new EntityMapDefinition.AttributeMap("ERPAnalytics
+                //new EntityMapDefinition.AttributeMap("VATPercentage
+                //new EntityMapDefinition.AttributeMap("ExpenseAmount",""),
+                //new EntityMapDefinition.AttributeMap("LicensePlate","
+                new EntityMapDefinition.AttributeMap("DeslocationPurpose","DeslocationPurpose"),
+                new EntityMapDefinition.AttributeMap("DeslocationDistance","DeslocationDistance"),
+                //new EntityMapDefinition.AttributeMap("Deslocation
+                new EntityMapDefinition.AttributeMap("UnitValue","UnitValue"),
+                new EntityMapDefinition.AttributeMap("EmployeeVehicle","OtherVehicle"),
+                //new EntityMapDefinition.AttributeMap("IsFoodAllowanceType
+                new EntityMapDefinition.AttributeMap("IsOwnCarType","IsOwnCarExpense"),
+                //new EntityMapDefinition.AttributeMap("IsSubsistenceAllowanceType
+                //new EntityMapDefinition.AttributeMap("ERPVAT
+                //new EntityMapDefinition.AttributeMap("Vehicle2
+                //new EntityMapDefinition.AttributeMap("Vehicle
+                //new EntityMapDefinition.AttributeMap("ExpenseSupplier
+                new EntityMapDefinition.AttributeMap("IsCompanyCarType","IsCompanyCarExpense")
+
+            };
+
+            var expenseRefundRequestDefinition = new EntityMapDefinition("Commitment", "ExpenseRefundRequest",
+                "Commitment", "ExpenseRefundRequest",
+                expenseRefundRequestAttributes);
+
+            var expenseReportAttributes = new List<EntityMapDefinition.AttributeMap>()
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Number", "_number", EntityMapDefinition.AttributeMap.AttributeType.Long, EntityMapDefinition.AttributeMap.AttributeType.Int),
+                new EntityMapDefinition.AttributeMap("NumberSerieCode", "_serie"),
+                // COMPANY //TODO
+
+                new EntityMapDefinition.AttributeMap("Employee", "Employee"),
+                new EntityMapDefinition.AttributeMap("ApproveBy", "Approver"),
+                new EntityMapDefinition.AttributeMap("Amount", "Amount"),
+                //new EntityMapDefinition.AttributeMap("FileUpload // TODO
+                new EntityMapDefinition.AttributeMap("ExpenseProject", "Project"),
+                //new EntityMapDefinition.AttributeMap("DueDate //TODO
+                //new EntityMapDefinition.AttributeMap("ApprovalDefinedEmployee
+                //new EntityMapDefinition.AttributeMap("VacationEmployeeRepl
+                //new EntityMapDefinition.AttributeMap("ERPDocumentIdentifier
+                //new EntityMapDefinition.AttributeMap("EmployeeCostCenter
+                new EntityMapDefinition.AttributeMap("ExpenseDetails", "ExpenseDetails"),
+                new EntityMapDefinition.AttributeMap("Location","Location"),
+                new EntityMapDefinition.AttributeMap("ExpenseCurrency","Currency"),
+                new EntityMapDefinition.AttributeMap("Rate","Rate"),
+                new EntityMapDefinition.AttributeMap("DocumentDate","DocumentDate"),
+                //new EntityMapDefinition.AttributeMap("ChargeThirdParty
+                //new EntityMapDefinition.AttributeMap("ChargeThirdPartyNotes
+                //new EntityMapDefinition.AttributeMap("CompanyBaseCurrency //TODO
+                new EntityMapDefinition.AttributeMap("CreditCard","CreditCard"),
+                //new EntityMapDefinition.AttributeMap("VatAmount
+                //new EntityMapDefinition.AttributeMap("DefaultCreditCard
+                //new EntityMapDefinition.AttributeMap("ERPSimpleIdentifier
+                //new EntityMapDefinition.AttributeMap("ERPOtherDoc
+                //new EntityMapDefinition.AttributeMap("IsInvertedRateCalc
+                //new EntityMapDefinition.AttributeMap("DefaultVehicle
+                //new EntityMapDefinition.AttributeMap("Department
+                new EntityMapDefinition.AttributeMap("UseCreditCard","UseCreditCard"),
+                //new EntityMapDefinition.AttributeMap("EmployeeERPCode"
                 new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
+                //new EntityMapDefinition.AttributeMap("TeamApprover
+                //new EntityMapDefinition.AttributeMap("DepartmentsWithAccess
 
-                new EntityMapDefinition.AttributeMap("BaseCurrency", "Currency"),
-                //new EntityMapDefinition.AttributeMap("ExpenseReportApprover", ""),
-                //new EntityMapDefinition.AttributeMap("CashAdvanceApprover", ""),
-                new EntityMapDefinition.AttributeMap("BaseLocation", "BaseLocation"),
-                //new EntityMapDefinition.AttributeMap("HRApprover", ""),
-                //new EntityMapDefinition.AttributeMap("NumberOfDays", ""),
-                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitDay", ""),
-                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitMonth", ""),
-                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitDay", ""),
-                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitMonth", ""),
-                //new EntityMapDefinition.AttributeMap("CanSeeHolidaysCreate", ""),
-                //new EntityMapDefinition.AttributeMap("Market", ""),
-
-                //new EntityMapDefinition.AttributeMap("HolidayEvents", ""),
-                //new EntityMapDefinition.AttributeMap("OvertimeEvents", ""),
-                //new EntityMapDefinition.AttributeMap("AbsenceEvents", "")
             };
 
-            var companyConfigFromCompanyDefinition = new EntityMapDefinition("Agent", "myCompany",
-                "GenericEntity", "CompanyConfigurations",
-                companyConfigFromCompanyAttributes);
+            var expenseReportDefinition = new EntityMapDefinition("Interaction", "ExpenseReport",
+                "Document", "ExpenseReport",
+                expenseReportAttributes,
+                commitments: new List<EntityMapDefinition>
+                {
+                    expenseRefundRequestDefinition
+                });
 
-            var companyConfigFromPrimaveraAttributes = new List<EntityMapDefinition.AttributeMap>()
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                //new EntityMapDefinition.AttributeMap("Name", "_name"),
-                //new EntityMapDefinition.AttributeMap("Code", "Company"),
-                new EntityMapDefinition.AttributeMap("TipoPlataforma", "TipoPlataforma"),
-
-                //new EntityMapDefinition.AttributeMap("ExpenseReportApprover", ""),
-                //new EntityMapDefinition.AttributeMap("CashAdvanceApprover", ""),
-                //new EntityMapDefinition.AttributeMap("HRApprover", ""),
-                //new EntityMapDefinition.AttributeMap("NumberOfDays", ""),
-                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitDay", ""),
-                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitMonth", ""),
-                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitDay", ""),
-                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitMonth", ""),
-                //new EntityMapDefinition.AttributeMap("CanSeeHolidaysCreate", ""),
-                //new EntityMapDefinition.AttributeMap("Market", ""),
-
-                //new EntityMapDefinition.AttributeMap("HolidayEvents", ""),
-                //new EntityMapDefinition.AttributeMap("OvertimeEvents", ""),
-                //new EntityMapDefinition.AttributeMap("AbsenceEvents", "")
-            };
-
-            var companyConfigFromPrimaveraDefinition = new EntityMapDefinition("UserDefinedEntity", "Primavera",
-                "GenericEntity", "CompanyConfigurations",
-                companyConfigFromPrimaveraAttributes);
 
             stopwatch.Start();
 
@@ -183,8 +219,7 @@ namespace OmniaMigrationTool
                 {
                     employeeDefinition,
                     companyDefinition,
-                    companyConfigFromCompanyDefinition,
-                    companyConfigFromPrimaveraDefinition
+                    expenseReportDefinition
                 });
 
             stopwatch.Stop();
@@ -242,9 +277,13 @@ namespace OmniaMigrationTool
         {
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
+            var commitmentDictionary = new Dictionary<string, List<ItemProcessed>>();
 
             foreach (var item in definition.Items)
                 itemDictionary.Add(item.SourceCode, await GetItems(sourceTenant, conn, item));
+
+            foreach (var item in definition.Commitments)
+                commitmentDictionary.Add(item.SourceCode, await GetCommitments(sourceTenant, conn, item));
 
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(sourceTenant,
@@ -264,11 +303,17 @@ namespace OmniaMigrationTool
                             var mapping = new Dictionary<string, object>();
 
                             foreach (var attribute in definition.Attributes)
-                                MapAttribute(mapping, reader, attribute.Source, attribute.Target);
+                                MapAttribute(mapping, reader, attribute);
 
                             foreach (var item in definition.Items)
                             {
                                 mapping[item.SourceCode] = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                    .Select(i => i.Data);
+                            }
+
+                            foreach (var item in definition.Commitments)
+                            {
+                                mapping[item.SourceCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
 
@@ -339,7 +384,7 @@ namespace OmniaMigrationTool
                         var mapping = new Dictionary<string, object>();
 
                         foreach (var attribute in definition.Attributes)
-                            MapAttribute(mapping, reader, attribute.Source, attribute.Target);
+                            MapAttribute(mapping, reader, attribute);
 
                         var parentId = reader.GetInt64(reader.GetOrdinal("MisEntityID"));
                         result.Add(new ItemProcessed(parentId, mapping));
@@ -350,11 +395,64 @@ namespace OmniaMigrationTool
             return result;
         }
 
-        private static void MapAttribute(IDictionary<string, object> data, IDataRecord reader, string sourceAttribute, string targetAttribute)
+        private static async Task<List<ItemProcessed>> GetCommitments(Guid sourceTenant, SqlConnection conn,
+            EntityMapDefinition definition)
         {
-            if (!reader.IsDBNull(reader.GetOrdinal(sourceAttribute)))
+            var result = new List<ItemProcessed>();
+            using (var command = new SqlCommand(
+                Queries.SourceQueries.TransactionalEntityQuery(sourceTenant,
+                    definition.SourceKind,
+                    definition.Attributes.Select(c => c.Source).ToArray()
+                ), conn))
             {
-                data.Add(targetAttribute, reader.GetString(reader.GetOrdinal(sourceAttribute)));
+                command.Parameters.Add(new SqlParameter("@code",
+                    definition.SourceCode
+                ));
+
+                command.CommandTimeout = 360;
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var mapping = new Dictionary<string, object>();
+
+                        foreach (var attribute in definition.Attributes)
+                            MapAttribute(mapping, reader, attribute);
+
+                        var parentId = reader.GetInt64(reader.GetOrdinal("InteractionID"));
+                        result.Add(new ItemProcessed(parentId, mapping));
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static void MapAttribute(IDictionary<string, object> data, IDataRecord reader, EntityMapDefinition.AttributeMap attribute)
+        {
+            if (reader.IsDBNull(reader.GetOrdinal(attribute.Source))) return;
+
+            switch (attribute.SourceType)
+            {
+                case EntityMapDefinition.AttributeMap.AttributeType.Long:
+                    data.Add(attribute.Target, reader.GetInt64(reader.GetOrdinal(attribute.Source)));
+                    break;
+                case EntityMapDefinition.AttributeMap.AttributeType.Int:
+                    data.Add(attribute.Target, reader.GetInt32(reader.GetOrdinal(attribute.Source)));
+                    break;
+                case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
+                    data.Add(attribute.Target, reader.GetDecimal(reader.GetOrdinal(attribute.Source)));
+                    break;
+                case EntityMapDefinition.AttributeMap.AttributeType.Date:
+                    data.Add(attribute.Target, reader.GetDateTime(reader.GetOrdinal(attribute.Source)));
+                    break;
+                case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
+                    data.Add(attribute.Target, reader.GetBoolean(reader.GetOrdinal(attribute.Source)));
+                    break;
+                default:
+                    data.Add(attribute.Target, reader.GetString(reader.GetOrdinal(attribute.Source)));
+                    break;
             }
         }
 
