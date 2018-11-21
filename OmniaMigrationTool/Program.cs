@@ -9,6 +9,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
+using Microsoft.Extensions.CommandLineUtils;
 
 namespace OmniaMigrationTool
 {
@@ -16,10 +17,25 @@ namespace OmniaMigrationTool
     {
         private static Stopwatch stopwatch = new Stopwatch();
 
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
-            AsyncMain(args).GetAwaiter().GetResult();
-            Console.ReadKey();
+            var app = new CommandLineApplication();
+
+            app.Command("export", (command) =>
+            {
+
+                command.Description = "Export data from source system.";
+                //command.HelpOption("-?|-h|--help");
+
+                command.OnExecute(() =>
+                {
+                    AsyncMain(args).GetAwaiter().GetResult();
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
+
+            return app.Execute(args);
         }
 
         private static async Task AsyncMain(string[] args)
