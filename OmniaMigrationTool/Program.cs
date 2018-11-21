@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.Extensions.CommandLineUtils;
+using Omnia.Libraries.GenericExtensions;
 
 namespace OmniaMigrationTool
 {
@@ -80,7 +81,7 @@ namespace OmniaMigrationTool
 
             // COMPANY 
             // ---------------------------------------------
-            
+
             var companyAttributes = new List<EntityMapDefinition.AttributeMap>()
             {
                 new EntityMapDefinition.AttributeMap("Code", "_code"),
@@ -108,62 +109,133 @@ namespace OmniaMigrationTool
                 companyAttributes);
 
 
-            //// COMPANY CONFIGURATIONS
-            //// ---------------------------------------------
+            // COMPANY CONFIGURATIONS
+            // ---------------------------------------------
 
-            //var companyConfigAttributes = new List<EntityMapDefinition.AttributeMap>()
-            //{
-            //    new EntityMapDefinition.AttributeMap("Code", "_code"),
-            //    new EntityMapDefinition.AttributeMap("Name", "_name"),
-            //    new EntityMapDefinition.AttributeMap("Code", "Company"),
-            //    new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
+            var companyConfigFromCompanyAttributes = new List<EntityMapDefinition.AttributeMap>()
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Name", "_name"),
+                new EntityMapDefinition.AttributeMap("Code", "Company"),
+                new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
 
-            //    new EntityMapDefinition.AttributeMap("BaseCurrency", "Currency"),
-            //    //new EntityMapDefinition.AttributeMap("ExpenseReportApprover", ""),
-            //    //new EntityMapDefinition.AttributeMap("CashAdvanceApprover", ""),
-            //    new EntityMapDefinition.AttributeMap("BaseLocation", "BaseLocation"),
-            //    //new EntityMapDefinition.AttributeMap("HRApprover", ""),
-            //    //new EntityMapDefinition.AttributeMap("NumberOfDays", ""),
-            //    //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitDay", ""),
-            //    //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitMonth", ""),
-            //    //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitDay", ""),
-            //    //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitMonth", ""),
-            //    //new EntityMapDefinition.AttributeMap("CanSeeHolidaysCreate", ""),
-            //    //new EntityMapDefinition.AttributeMap("Market", ""),
-                
-            //    //new EntityMapDefinition.AttributeMap("HolidayEvents", ""),
-            //    //new EntityMapDefinition.AttributeMap("OvertimeEvents", ""),
-            //    //new EntityMapDefinition.AttributeMap("AbsenceEvents", "")
-            //};
+                new EntityMapDefinition.AttributeMap("BaseCurrency", "Currency"),
+                //new EntityMapDefinition.AttributeMap("ExpenseReportApprover", ""),
+                //new EntityMapDefinition.AttributeMap("CashAdvanceApprover", ""),
+                new EntityMapDefinition.AttributeMap("BaseLocation", "BaseLocation"),
+                //new EntityMapDefinition.AttributeMap("HRApprover", ""),
+                //new EntityMapDefinition.AttributeMap("NumberOfDays", ""),
+                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitDay", ""),
+                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitMonth", ""),
+                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitDay", ""),
+                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitMonth", ""),
+                //new EntityMapDefinition.AttributeMap("CanSeeHolidaysCreate", ""),
+                //new EntityMapDefinition.AttributeMap("Market", ""),
 
-            //var companyConfigDefinition = new EntityMapDefinition("Agent", "myCompany",
-            //    "GenericEntity", "CompanyConfigurations",
-            //    companyConfigAttributes);
+                //new EntityMapDefinition.AttributeMap("HolidayEvents", ""),
+                //new EntityMapDefinition.AttributeMap("OvertimeEvents", ""),
+                //new EntityMapDefinition.AttributeMap("AbsenceEvents", "")
+            };
 
+            var companyConfigFromCompanyDefinition = new EntityMapDefinition("Agent", "myCompany",
+                "GenericEntity", "CompanyConfigurations",
+                companyConfigFromCompanyAttributes);
+
+            var companyConfigFromPrimaveraAttributes = new List<EntityMapDefinition.AttributeMap>()
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                //new EntityMapDefinition.AttributeMap("Name", "_name"),
+                //new EntityMapDefinition.AttributeMap("Code", "Company"),
+                new EntityMapDefinition.AttributeMap("TipoPlataforma", "TipoPlataforma"),
+
+                //new EntityMapDefinition.AttributeMap("ExpenseReportApprover", ""),
+                //new EntityMapDefinition.AttributeMap("CashAdvanceApprover", ""),
+                //new EntityMapDefinition.AttributeMap("HRApprover", ""),
+                //new EntityMapDefinition.AttributeMap("NumberOfDays", ""),
+                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitDay", ""),
+                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitMonth", ""),
+                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitDay", ""),
+                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitMonth", ""),
+                //new EntityMapDefinition.AttributeMap("CanSeeHolidaysCreate", ""),
+                //new EntityMapDefinition.AttributeMap("Market", ""),
+
+                //new EntityMapDefinition.AttributeMap("HolidayEvents", ""),
+                //new EntityMapDefinition.AttributeMap("OvertimeEvents", ""),
+                //new EntityMapDefinition.AttributeMap("AbsenceEvents", "")
+            };
+
+            var companyConfigFromPrimaveraDefinition = new EntityMapDefinition("UserDefinedEntity", "Primavera",
+                "GenericEntity", "CompanyConfigurations",
+                companyConfigFromPrimaveraAttributes);
 
             stopwatch.Start();
 
-            using (var conn = new SqlConnection("Data Source=sqlsrvmymis66ey4j7eutvtc.database.windows.net;Initial Catalog=sqldbmymis66ey4j7eutvtc;user id=MyMisMaster;password=4FXsJMDlp5JWHIzk;MultipleActiveResultSets=True;Connection Timeout=60"))
-            {
-                await conn.OpenAsync();
-
-                await ProcessEntity(tempDir.Path, sourceTenant, conn,
-                        employeeDefinition);
-
-                await ProcessEntity(tempDir.Path, sourceTenant, conn,
-                    companyDefinition);
-            }
+            await Process(tempDir.Path, sourceTenant,
+                new List<EntityMapDefinition>
+                {
+                    employeeDefinition,
+                    companyDefinition,
+                    companyConfigFromCompanyDefinition,
+                    companyConfigFromPrimaveraDefinition
+                });
 
             stopwatch.Stop();
 
             Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
         }
 
-        private static async Task ProcessEntity(string outputPath, Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
+        private static async Task Process(string outputPath, Guid sourceTenant, IList<EntityMapDefinition> definitions)
         {
+            using (var conn = new SqlConnection("Data Source=sqlsrvmymis66ey4j7eutvtc.database.windows.net;Initial Catalog=sqldbmymis66ey4j7eutvtc;user id=MyMisMaster;password=4FXsJMDlp5JWHIzk;MultipleActiveResultSets=True;Connection Timeout=60"))
+            {
+                await conn.OpenAsync();
+
+                var group = definitions.GroupBy(g => g.TargetCode);
+
+                foreach (var item in group)
+                {
+                    var itemDefinitions = item.ToList();
+                    await ProcessEntity(outputPath, sourceTenant, conn,
+                        itemDefinitions);
+                }
+            }
+        }
+
+        private static async Task ProcessEntity(string outputPath, Guid sourceTenant, SqlConnection conn, IList<EntityMapDefinition> definitions)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("identifier,version,body,created_at,updated_at");
+
+            var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+
+            IList<Dictionary<string, object>> mappingCollection = new List<Dictionary<string, object>>();
+
+            foreach (var definition in definitions)
+            {
+                var mappingResult = await MapEntity(sourceTenant, conn, definition);
+
+                foreach (var result in mappingResult)
+                {
+                    var elementInCollection = mappingCollection.FirstOrDefault(m => m["_code"].Equals(result["_code"]));
+                    if (elementInCollection == null)
+                        mappingCollection.Add(result);
+                    else
+                        elementInCollection.Merge(result);
+                }
+            }
+
+            foreach (var mapping in mappingCollection)
+                sb.AppendLine($"{mapping["_code"]},1,\"{JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"")}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
+
+            File.WriteAllText(Path.Combine(outputPath, $"{definitions.First().TargetCode}.csv"), sb.ToString());
+        }
+
+        private static async Task<IList<Dictionary<string, object>>> MapEntity(Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
+        {
+            var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
 
-            foreach(var item in definition.Items)
+            foreach (var item in definition.Items)
                 itemDictionary.Add(item.SourceCode, await GetItems(sourceTenant, conn, item));
 
             using (var command = new SqlCommand(
@@ -172,17 +244,8 @@ namespace OmniaMigrationTool
                     definition.Attributes.Select(c => c.Source).ToArray()), conn))
             {
                 command.Parameters.Add(new SqlParameter("@code", definition.SourceCode));
-
-
                 try
                 {
-
-
-                    var sb = new StringBuilder();
-                    sb.AppendLine("identifier,version,body,created_at,updated_at");
-
-                    var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-
                     command.CommandTimeout = 360;
 
                     using (var reader = await command.ExecuteReaderAsync())
@@ -201,21 +264,17 @@ namespace OmniaMigrationTool
                                     .Select(i => i.Data);
                             }
 
-
-                            sb.AppendLine($"{mapping["_code"]},1,\"{JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"")}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
+                            result.Add(mapping);
                         }
                     }
-
-                    File.WriteAllText(Path.Combine(outputPath, $"{definition.TargetCode}.csv"), sb.ToString());
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.GetType().ToString());
                     Console.WriteLine(ex.Message);
                 }
-
-
             }
+            return result;
         }
 
         private static async Task<List<ItemProcessed>> GetItems(Guid sourceTenant, SqlConnection conn,

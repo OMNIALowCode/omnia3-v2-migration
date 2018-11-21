@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace OmniaMigrationTool.Queries
 {
     internal static class SourceQueries
     {
-        private static string[] SystemAttributes = new string[]
+        private static readonly string[] SystemAttributes = new[]
         {
             "Code",
             "Name"
@@ -16,6 +14,7 @@ namespace OmniaMigrationTool.Queries
         private const string EntityQueryTemplate =
         @"SELECT * FROM [{0}].[MisEntities] me
           INNER JOIN [{0}].[MisEntities_{1}] a on me.ID = a.ID
+          INNER JOIN [{0}].MisEntityTypes t ON me.MisEntityTypeID = t.ID
           LEFT JOIN (SELECT * FROM (
                         SELECT av.MisEntityID, ak.Name, coalesce(foreignme.code, av.VALUE) AS Code
                         FROM [{0}].AttributeKeys ak
@@ -27,7 +26,8 @@ namespace OmniaMigrationTool.Queries
                         WHERE t.Code = @code
                         ) AS p
             PIVOT (MIN([Code]) FOR [Name] IN ({2})) as pvt
-        ) AS eav ON eav.MisEntityID = me.ID";
+        ) AS eav ON eav.MisEntityID = me.ID
+        WHERE t.Code = @code;";
 
         public static string EntityQuery(Guid tenant, string kind, string[] customAttributes)
             => string.Format(EntityQueryTemplate, tenant, kind, string.Join(",", customAttributes.Where(c=> !SystemAttributes.Contains(c))));
