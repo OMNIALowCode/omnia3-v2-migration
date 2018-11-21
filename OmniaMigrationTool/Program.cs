@@ -5,12 +5,12 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 using Omnia.Libraries.GenericExtensions;
+using System.IO;
 
 namespace OmniaMigrationTool
 {
@@ -24,13 +24,24 @@ namespace OmniaMigrationTool
 
             app.Command("export", (command) =>
             {
-
                 command.Description = "Export data from source system.";
                 //command.HelpOption("-?|-h|--help");
 
                 command.OnExecute(() =>
                 {
                     AsyncMain(args).GetAwaiter().GetResult();
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
+
+            app.Command("import", (command) =>
+            {
+                command.Description = "Import data to destination system.";
+
+                command.OnExecute(() =>
+                {
+                    Import();
                     Console.ReadKey();
                     return 0;
                 });
@@ -46,7 +57,7 @@ namespace OmniaMigrationTool
 
             Console.WriteLine($"Writing to folder: {tempDir.Path}");
 
-            // EMPLOYEE 
+            // EMPLOYEE
             // ---------------------------------------------
             var employeeErpConfigDefinition = new EntityMapDefinition("MisEntityItem", "EmployeeERPConfig",
                 "GenericEntity", "EmployeeERPConfiguration",
@@ -59,7 +70,6 @@ namespace OmniaMigrationTool
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("ERPCostCenter", "CostCenter"));
             employeeErpConfigDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("CompanyCode", "company"));
-
 
             var employeeDefinition = new EntityMapDefinition("Agent", "Employee",
                 "Agent", "Employee",
@@ -78,8 +88,7 @@ namespace OmniaMigrationTool
             employeeDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("Company", "defaultCompany"));
 
-
-            // COMPANY 
+            // COMPANY
             // ---------------------------------------------
 
             var companyAttributes = new List<EntityMapDefinition.AttributeMap>()
@@ -107,7 +116,6 @@ namespace OmniaMigrationTool
             var companyDefinition = new EntityMapDefinition("Agent", "myCompany",
                 "Agent", "Company",
                 companyAttributes);
-
 
             // COMPANY CONFIGURATIONS
             // ---------------------------------------------
@@ -277,6 +285,37 @@ namespace OmniaMigrationTool
             return result;
         }
 
+        private static void Import()
+        {
+            var outputMessageBuilder = new StringBuilder();
+
+            var process = new Process
+            {
+                EnableRaisingEvents = true,
+                StartInfo = new ProcessStartInfo("cmd.exe")
+                {
+                    Arguments = @"/c ""SET PGPASSWORD=NB_2012#&& D:\GitProjects\MigrationTool\OmniaMigrationTool\Tools\psql.exe -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing -c ""\copy _0c010f91ae8842ac94de3dca692f2dad_business.company FROM 'C:\Users\luisbarbosa\AppData\Local\Temp\tmp19E9.tmp\Company.csv' WITH DELIMITER ',' CSV HEADER""",
+                    //WindowStyle = ProcessWindowStyle.Hidden
+                    UseShellExecute = false,
+                    CreateNoWindow = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
+            process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
+
+            // Start process and handlers
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException(outputMessageBuilder.ToString());
+        }
+
         private static async Task<List<ItemProcessed>> GetItems(Guid sourceTenant, SqlConnection conn,
             EntityMapDefinition definition)
         {
@@ -319,7 +358,6 @@ namespace OmniaMigrationTool
             }
         }
 
-
         internal class ItemProcessed
         {
             public ItemProcessed(long parentId, Dictionary<string, object> data)
@@ -329,6 +367,7 @@ namespace OmniaMigrationTool
             }
 
             public long ParentId { get; }
+
             public Dictionary<string, object> Data { get; }
         }
     }
