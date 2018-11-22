@@ -70,6 +70,8 @@ namespace OmniaMigrationTool
             employeeErpConfigDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
             employeeErpConfigDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_name"));
+            employeeErpConfigDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("ERPCostCenter", "CostCenter"));
             employeeErpConfigDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("CompanyCode", "company"));
@@ -262,7 +264,7 @@ namespace OmniaMigrationTool
 
         private static void Import(string folderPath)
         {
-            string targetSchema = "_0c010f91ae8842ac94de3dca692f2dad_business";
+            string targetSchema = "_9dbc1b38429446a09bbf9e313d5115a9_business";
 
             var outputMessageBuilder = new StringBuilder();
             var commandPipeline = new StringBuilder();
