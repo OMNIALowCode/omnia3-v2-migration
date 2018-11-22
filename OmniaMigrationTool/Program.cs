@@ -329,9 +329,13 @@ namespace OmniaMigrationTool
 
                     foreach (var mapping in mappingCollection)
                     {
+                        var entityId = Guid.NewGuid();
+                        var eventMessage = $@"'{targetCode}' with code '{mapping["_code"]}' has been migrated";
                         var data = JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"");
 
-                        await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{Guid.NewGuid()},{targetCode},{mapping["_code"]},false,1,""{{""""data"""":{data}}}"",""{eventMetadata}"",'{targetCode}' with code '{mapping["_code"]}' has been migrated,{correlationId}");
+                        var eventData = $@"{{""""data"""":{data},""""classifier"""":""""{targetCode}"""",""""entityId"""":""""{entityId}"""",""""identifier"""":""""{mapping["_code"]}"""",""""layer"""":""""business"""", """"message"""":""""{eventMessage}"""",""""version"""":1}}";
+
+                        await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{entityId},{targetCode},{mapping["_code"]},false,1,""{eventData}"",""{eventMetadata}"",{eventMessage},{correlationId}");
                         await entityStream.WriteLineAsync($"{mapping["_code"]},1,\"{data}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
                     }
                 }
