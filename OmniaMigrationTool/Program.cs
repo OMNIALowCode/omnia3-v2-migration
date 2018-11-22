@@ -281,9 +281,6 @@ namespace OmniaMigrationTool
 
         private static async Task ProcessEntity(string outputPath, Guid sourceTenant, SqlConnection conn, IEnumerable<EntityMapDefinition> definitions, StreamWriter eventStoreStream)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine("identifier,version,body,created_at,updated_at");
-
             var mappingCollection = new List<Dictionary<string, object>>();
 
             var targetCode = definitions.First().TargetCode;
@@ -306,6 +303,8 @@ namespace OmniaMigrationTool
             {
                 using (var entityStream = new StreamWriter(fs))
                 {
+                    await entityStream.WriteLineAsync("identifier,version,body,created_at,updated_at");
+
                     foreach (var mapping in mappingCollection)
                     {
                         var data = JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"");
