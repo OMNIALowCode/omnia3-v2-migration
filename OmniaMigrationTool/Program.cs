@@ -11,6 +11,8 @@ using System.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 using Omnia.Libraries.GenericExtensions;
 using System.IO;
+using Npgsql;
+using OmniaMigrationTool.Queries;
 
 namespace OmniaMigrationTool
 {
@@ -42,10 +44,11 @@ namespace OmniaMigrationTool
                 command.Description = "Import data to destination system.";
 
                 var folderOption = command.Option("--f", "Import folder path", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("--t", "Import tenant", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
-                    Import(folderOption.Value());
+                    Import(folderOption.Value(), tenantOption.Value()).GetAwaiter().GetResult();
                     Console.ReadKey();
                     return 0;
                 });
@@ -236,9 +239,21 @@ namespace OmniaMigrationTool
             Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
         }
 
-        private static void Import(string folderPath)
+        private static async Task Import(string folderPath, string tenantCode)
         {
-            string targetSchema = "_0c010f91ae8842ac94de3dca692f2dad_business";
+            string targetSchema = null;
+
+            var builder = new NpgsqlConnectionStringBuilder("Server=omnia3test.postgres.database.azure.com;Database=Testing;UserId=NumbersBelieve@omnia3test;Password=NB_2012#;Pooling=true;Keepalive=10;SSL Mode=Require");
+            using (var conn = new NpgsqlConnection(builder.ConnectionString))
+            {
+                using (var command = new NpgsqlCommand(TargetQueries.TenantSchemaQuery, conn))
+                {
+                    command.CommandTimeout = 360;
+                    command.Parameters.Add(new NpgsqlParameter("@code", tenantCode));
+
+                    targetSchema = (await command.ExecuteScalarAsync()) as string;
+                }
+            }
 
             var outputMessageBuilder = new StringBuilder();
             var commandPipeline = new StringBuilder();
@@ -255,7 +270,7 @@ namespace OmniaMigrationTool
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
-                    Arguments = $@"/c ""SET PGPASSWORD=NB_2012#&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing {commandPipeline.ToString()}",
+                    Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
                     //WindowStyle = ProcessWindowStyle.Hidden
                     UseShellExecute = false,
                     CreateNoWindow = false,
