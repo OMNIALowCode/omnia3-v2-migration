@@ -186,7 +186,7 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("DueDate", "_date",EntityMapDefinition.AttributeMap.AttributeType.Text, EntityMapDefinition.AttributeMap.AttributeType.Date),
                 //new EntityMapDefinition.AttributeMap("ApprovalDefinedEmployee
                 //new EntityMapDefinition.AttributeMap("VacationEmployeeRepl
-                //new EntityMapDefinition.AttributeMap("ERPDocumentIdentifier // TODO: Lidar com multiplicidade //ERPTreasuryDocumentId ou ERPBankDocumentId
+                new EntityMapDefinition.AttributeMap("ERPDocumentIdentifier","ERPTreasuryDocumentId"),
                 new EntityMapDefinition.AttributeMap("ExpenseDetails", "ExpenseDetails"),
                 new EntityMapDefinition.AttributeMap("Location","Location"),
                 new EntityMapDefinition.AttributeMap("ExpenseCurrency","Currency"),
