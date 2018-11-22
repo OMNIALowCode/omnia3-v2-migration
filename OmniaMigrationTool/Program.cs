@@ -269,6 +269,8 @@ namespace OmniaMigrationTool
             var builder = new NpgsqlConnectionStringBuilder("Server=omnia3test.postgres.database.azure.com;Database=Testing;UserId=NumbersBelieve@omnia3test;Password=NB_2012#;Pooling=true;Keepalive=10;SSL Mode=Require");
             using (var conn = new NpgsqlConnection(builder.ConnectionString))
             {
+                await conn.OpenAsync();
+
                 using (var command = new NpgsqlCommand(TargetQueries.TenantSchemaQuery, conn))
                 {
                     command.CommandTimeout = 360;
