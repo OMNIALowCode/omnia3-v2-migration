@@ -81,7 +81,7 @@ namespace OmniaMigrationTool.Queries
                 customJoin +=
                     $"LEFT JOIN [{tenant}].ApprovalStages aps on a.ApprovalStageID = aps.ID ";
                 customSelect +=
-                    ", aps.Code 'ApprovalStageCode', aps.Name 'ApprovalStageName' ";
+                    ", aps.Code 'ApprovalStageCode' ";
                 
                 attributesFromEav = attributesFromEav.Where(c => !c.Equals("ApprovalStageCode")).ToArray();
             }

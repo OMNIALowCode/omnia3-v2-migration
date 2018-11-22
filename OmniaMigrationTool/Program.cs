@@ -135,22 +135,22 @@ namespace OmniaMigrationTool
                 //new EntityMapDefinition.AttributeMap("FileUpload
                 new EntityMapDefinition.AttributeMap("LimitItem", "ItemLimit"),
                 //new EntityMapDefinition.AttributeMap("Incidence", ""
-                new EntityMapDefinition.AttributeMap("VatValue", "VAT"),
+                new EntityMapDefinition.AttributeMap("VatValue", "VATValue"),
                 new EntityMapDefinition.AttributeMap("ERPCostCenter","CostCenter"),
                 new EntityMapDefinition.AttributeMap("ERPGeneralAccount","GeneralAccount"),
                 //new EntityMapDefinition.AttributeMap("ERPAnalytics
-                //new EntityMapDefinition.AttributeMap("VATPercentage
-                //new EntityMapDefinition.AttributeMap("ExpenseAmount",""),
-                //new EntityMapDefinition.AttributeMap("LicensePlate","
+                new EntityMapDefinition.AttributeMap("VATPercentage","VATTax"),
+                new EntityMapDefinition.AttributeMap("ExpenseAmount","AmountExpenseCurrency"),
+                new EntityMapDefinition.AttributeMap("LicensePlate","CompanyVehicle"),
                 new EntityMapDefinition.AttributeMap("DeslocationPurpose","DeslocationPurpose"),
                 new EntityMapDefinition.AttributeMap("DeslocationDistance","DeslocationDistance"),
-                //new EntityMapDefinition.AttributeMap("Deslocation
+                //new EntityMapDefinition.AttributeMap("Deslocation","")
                 new EntityMapDefinition.AttributeMap("UnitValue","UnitValue"),
                 new EntityMapDefinition.AttributeMap("EmployeeVehicle","OtherVehicle"),
                 //new EntityMapDefinition.AttributeMap("IsFoodAllowanceType
                 new EntityMapDefinition.AttributeMap("IsOwnCarType","IsOwnCarExpense"),
                 //new EntityMapDefinition.AttributeMap("IsSubsistenceAllowanceType
-                //new EntityMapDefinition.AttributeMap("ERPVAT
+                new EntityMapDefinition.AttributeMap("ERPVAT", "VAT"),
                 //new EntityMapDefinition.AttributeMap("Vehicle2
                 //new EntityMapDefinition.AttributeMap("Vehicle
                 //new EntityMapDefinition.AttributeMap("ExpenseSupplier
@@ -175,11 +175,10 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("Amount", "Amount"),
                 //new EntityMapDefinition.AttributeMap("FileUpload // TODO
                 new EntityMapDefinition.AttributeMap("ExpenseProject", "Project"),
-                //new EntityMapDefinition.AttributeMap("DueDate //TODO
+                new EntityMapDefinition.AttributeMap("DueDate", "_date",EntityMapDefinition.AttributeMap.AttributeType.Text, EntityMapDefinition.AttributeMap.AttributeType.Date),
                 //new EntityMapDefinition.AttributeMap("ApprovalDefinedEmployee
                 //new EntityMapDefinition.AttributeMap("VacationEmployeeRepl
-                //new EntityMapDefinition.AttributeMap("ERPDocumentIdentifier
-                //new EntityMapDefinition.AttributeMap("EmployeeCostCenter
+                //new EntityMapDefinition.AttributeMap("ERPDocumentIdentifier // TODO: Lidar com multiplicidade //ERPTreasuryDocumentId ou ERPBankDocumentId
                 new EntityMapDefinition.AttributeMap("ExpenseDetails", "ExpenseDetails"),
                 new EntityMapDefinition.AttributeMap("Location","Location"),
                 new EntityMapDefinition.AttributeMap("ExpenseCurrency","Currency"),
@@ -187,12 +186,12 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("DocumentDate","DocumentDate"),
                 //new EntityMapDefinition.AttributeMap("ChargeThirdParty
                 //new EntityMapDefinition.AttributeMap("ChargeThirdPartyNotes
-                //new EntityMapDefinition.AttributeMap("CompanyBaseCurrency //TODO
+                //new EntityMapDefinition.AttributeMap("CompanyBaseCurrency
                 new EntityMapDefinition.AttributeMap("CreditCard","CreditCard"),
                 //new EntityMapDefinition.AttributeMap("VatAmount
-                //new EntityMapDefinition.AttributeMap("DefaultCreditCard
-                //new EntityMapDefinition.AttributeMap("ERPSimpleIdentifier
-                //new EntityMapDefinition.AttributeMap("ERPOtherDoc
+                //new EntityMapDefinition.AttributeMap("DefaultCreditCard 
+                //new EntityMapDefinition.AttributeMap("ERPSimpleIdentifier // TODO: Lidar com multiplicidade //ERPIntegrations
+                //new EntityMapDefinition.AttributeMap("ERPOtherDoc // TODO: Lidar com multiplicidade //ERPIntegrations
                 //new EntityMapDefinition.AttributeMap("IsInvertedRateCalc
                 //new EntityMapDefinition.AttributeMap("DefaultVehicle
                 //new EntityMapDefinition.AttributeMap("Department
