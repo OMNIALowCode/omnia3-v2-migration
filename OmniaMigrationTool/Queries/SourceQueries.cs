@@ -65,18 +65,29 @@ namespace OmniaMigrationTool.Queries
             var customSelect = string.Empty;
             var attributesFromEav = customAttributes.Where(c => !EntitySystemAttributes.Contains(c))
                 .ToArray();
+
             if (kind.EqualsIgnoringCase("Interaction"))
             {
                 customJoin =
-                    $"INNER JOIN [{tenant}].MisEntities mcomp on a.CompanyID = mcomp.ID";
+                    $"INNER JOIN [{tenant}].MisEntities mcomp on a.CompanyID = mcomp.ID ";
                 customSelect =
-                    ", mcomp.Code 'CompanyCode'";
+                    ", mcomp.Code 'CompanyCode' ";
 
                 attributesFromEav = attributesFromEav.Where(c => !c.Equals("CompanyCode")).ToArray();
             }
 
+            if (!kind.EqualsIgnoringCase("MisEntityItem"))
+            {
+                customJoin +=
+                    $"LEFT JOIN [{tenant}].ApprovalStages aps on a.ApprovalStageID = aps.ID ";
+                customSelect +=
+                    ", aps.Code 'ApprovalStageCode', aps.Name 'ApprovalStageName' ";
+                
+                attributesFromEav = attributesFromEav.Where(c => !c.Equals("ApprovalStageCode")).ToArray();
+            }
+
             return string.Format(EntityQueryTemplate, tenant, kind,
-                string.Join(",", attributesFromEav), customJoin, customSelect);
+            string.Join(",", attributesFromEav), customJoin, customSelect);
         }
 
         public static string TransactionalEntityQuery(Guid tenant, string kind, string[] customAttributes)

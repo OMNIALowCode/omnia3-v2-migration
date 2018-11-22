@@ -168,7 +168,7 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("Number", "_number", EntityMapDefinition.AttributeMap.AttributeType.Long, EntityMapDefinition.AttributeMap.AttributeType.Int),
                 new EntityMapDefinition.AttributeMap("NumberSerieCode", "_serie"),
                 new EntityMapDefinition.AttributeMap("CompanyCode", "company"),
-                // COMPANY //TODO
+                new EntityMapDefinition.AttributeMap("ApprovalStageName", "ApprovalStage"),
 
                 new EntityMapDefinition.AttributeMap("Employee", "Employee"),
                 new EntityMapDefinition.AttributeMap("ApproveBy", "Approver"),
