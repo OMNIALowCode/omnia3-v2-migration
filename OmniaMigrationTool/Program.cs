@@ -88,7 +88,7 @@ namespace OmniaMigrationTool
 
             var employeeDefinition = new EntityMapDefinition("Agent", "Employee",
                 "Agent", "Employee",
-                "Primavera,OutOfOffice,PrevYearHolidays,usesPreviousYearHolidays"
+                "Primavera"
                     .Split(",")
                     .Select(c => new EntityMapDefinition.AttributeMap(c, c)).ToList(),
                 new List<EntityMapDefinition>()
@@ -96,12 +96,22 @@ namespace OmniaMigrationTool
                     employeeErpConfigDefinition
                 });
 
+            
+
             employeeDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
             employeeDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("Name", "_name"));
             employeeDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("Company", "defaultCompany"));
+
+            employeeDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("OutOfOffice", "outOfOffice",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
+
+            employeeDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("UsesPreviousYearHolidays", "usesPreviousYearHolidays",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
 
             // COMPANY
             // ---------------------------------------------
@@ -141,6 +151,10 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("Amount", "_amount", EntityMapDefinition.AttributeMap.AttributeType.Decimal,EntityMapDefinition.AttributeMap.AttributeType.Decimal),
                 new EntityMapDefinition.AttributeMap("Quantity", "_quantity", EntityMapDefinition.AttributeMap.AttributeType.Decimal,EntityMapDefinition.AttributeMap.AttributeType.Decimal),
                 new EntityMapDefinition.AttributeMap("DateOccurred", "ExpenseDate", EntityMapDefinition.AttributeMap.AttributeType.Date,EntityMapDefinition.AttributeMap.AttributeType.Date),
+                new EntityMapDefinition.AttributeMap("ProviderAgentCode", "_provider"),
+                new EntityMapDefinition.AttributeMap("ReceiverAgentCode", "_receiver"),
+                new EntityMapDefinition.AttributeMap("ResourceCode", "_resource"),
+
 
                 //new EntityMapDefinition.AttributeMap("ResourceName"
                 new EntityMapDefinition.AttributeMap("ExpenseDetails","Details"),
@@ -179,7 +193,7 @@ namespace OmniaMigrationTool
             };
 
             var expenseRefundRequestDefinition = new EntityMapDefinition("Commitment", "ExpenseRefundRequest",
-                "Commitment", "ExpenseRefundRequest",
+                "Commitment", "ExpenseLines",
                 expenseRefundRequestAttributes);
 
             var expenseReportAttributes = new List<EntityMapDefinition.AttributeMap>()
@@ -350,13 +364,13 @@ namespace OmniaMigrationTool
 
                             foreach (var item in definition.Items)
                             {
-                                mapping[item.SourceCode] = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                mapping[item.TargetCode] = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
 
                             foreach (var item in definition.Commitments)
                             {
-                                mapping[item.SourceCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                mapping[item.TargetCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
 

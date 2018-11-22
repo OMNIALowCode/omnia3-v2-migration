@@ -17,6 +17,9 @@ namespace OmniaMigrationTool.Queries
             "Quantity",
             "Amount",
             "DateOccurred",
+            "ProviderAgentCode",
+            "ReceiverAgentCode",
+            "ResourceCode"
         };
 
         private const string EntityQueryTemplate =
@@ -40,10 +43,13 @@ namespace OmniaMigrationTool.Queries
         WHERE t.Code = @code;";
 
         private const string TransactionalEntityQueryTemplate =
-            @"SELECT me.* , a.*, c.*, eav.*
+            @"SELECT pa.Code 'ProviderAgentCode', ra.Code 'ReceiverAgentCode', rc.Code 'ResourceCode', me.* , a.*, c.*, eav.*
           FROM [{0}].[MisEntities] me
           INNER JOIN [{0}].[MisEntities_TransactionalEntity] a on me.ID = a.ID
           INNER JOIN [{0}].[MisEntities_{1}] c on me.ID = c.ID
+          INNER JOIN [{0}].[MisEntities] pa on a.ProviderAgentID = pa.ID
+          INNER JOIN [{0}].[MisEntities] ra on a.ReceiverAgentID = ra.ID
+          INNER JOIN [{0}].[MisEntities] rc on a.ResourceID = rc.ID
           INNER JOIN [{0}].MisEntityTypes t ON me.MisEntityTypeID = t.ID
           LEFT JOIN (SELECT * FROM (
                         SELECT av.MisEntityID, ak.Name, coalesce(foreignme.code, av.VALUE) AS Code
