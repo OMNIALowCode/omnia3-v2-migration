@@ -28,23 +28,10 @@ namespace OmniaMigrationTool
             app.Command("export", (command) =>
             {
                 command.Description = "Export data from source system.";
-                //command.HelpOption("-?|-h|--help");
-
-                command.OnExecute(() =>
-            {
-                AsyncMain(args).GetAwaiter().GetResult();
-                Console.ReadKey();
-                return 0;
-            });
-            });
-
-            app.Command("import", (command) =>
-            {
-                command.Description = "Import data to destination system.";
 
                 command.OnExecute(() =>
                 {
-                    Import();
+                    Export().GetAwaiter().GetResult();
                     Console.ReadKey();
                     return 0;
                 });
@@ -54,9 +41,11 @@ namespace OmniaMigrationTool
             {
                 command.Description = "Import data to destination system.";
 
+                var folderOption = command.Option("--f", "Import folder path", CommandOptionType.SingleValue);
+
                 command.OnExecute(() =>
                 {
-                    Import();
+                    Import(folderOption.Value());
                     Console.ReadKey();
                     return 0;
                 });
@@ -65,12 +54,11 @@ namespace OmniaMigrationTool
             return app.Execute(args);
         }
 
-        private static async Task AsyncMain(string[] args)
+        private static async Task Export()
         {
-            var sourceTenant = Guid.Parse("5b59faa8-3e4c-4d3e-82c8-2aecd1207a70");
             var tempDir = new TempDirectory();
 
-            Console.WriteLine($"Writing to folder: {tempDir.Path}");
+            var sourceTenant = Guid.Parse("5b59faa8-3e4c-4d3e-82c8-2aecd1207a70");
 
             // EMPLOYEE
             // ---------------------------------------------
@@ -232,19 +220,63 @@ namespace OmniaMigrationTool
                     expenseRefundRequestDefinition
                 });
 
+            Console.WriteLine($"Writing to folder: {tempDir.Path}");
+
             stopwatch.Start();
 
-            await Process(tempDir.Path, sourceTenant,
-                new List<EntityMapDefinition>
-                {
-                    employeeDefinition,
-                    companyDefinition,
-                    expenseReportDefinition
-                });
+            await Process(tempDir.Path, sourceTenant, new List<EntityMapDefinition>
+            {
+                employeeDefinition,
+                companyDefinition,
+                expenseReportDefinition
+            });
 
             stopwatch.Stop();
 
             Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
+        }
+
+        private static void Import(string folderPath)
+        {
+            string targetSchema = "_0c010f91ae8842ac94de3dca692f2dad_business";
+
+            var outputMessageBuilder = new StringBuilder();
+            var commandPipeline = new StringBuilder();
+
+            Console.WriteLine($"Readind from folder: {folderPath}");
+
+            foreach (var file in Directory.EnumerateFiles(folderPath, "*.csv", SearchOption.AllDirectories))
+            {
+                commandPipeline.Append($@"-c ""\copy {targetSchema}.{Path.GetFileNameWithoutExtension(file)} FROM '{Path.Combine(folderPath, file)}' WITH DELIMITER ',' CSV HEADER"" ");
+            }
+
+            var process = new Process
+            {
+                EnableRaisingEvents = true,
+                StartInfo = new ProcessStartInfo("cmd.exe")
+                {
+                    Arguments = $@"/c ""SET PGPASSWORD=NB_2012#&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing {commandPipeline.ToString()}",
+                    //WindowStyle = ProcessWindowStyle.Hidden
+                    UseShellExecute = false,
+                    CreateNoWindow = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            };
+
+            process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
+            process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
+
+            // Start process and handlers
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException(outputMessageBuilder.ToString());
+
+            Console.WriteLine("Import ");
         }
 
         private static async Task Process(string outputPath, Guid sourceTenant, IList<EntityMapDefinition> definitions)
@@ -297,9 +329,13 @@ namespace OmniaMigrationTool
 
                     foreach (var mapping in mappingCollection)
                     {
+                        var entityId = Guid.NewGuid();
+                        var eventMessage = $@"'{targetCode}' with code '{mapping["_code"]}' has been migrated";
                         var data = JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"");
 
-                        await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{Guid.NewGuid()},{targetCode},{mapping["_code"]},false,1,""{{""""data"""":{data}}}"",""{eventMetadata}"",'{targetCode}' with code '{mapping["_code"]}' has been migrated,{correlationId}");
+                        var eventData = $@"{{""""data"""":{data},""""classifier"""":""""{targetCode}"""",""""entityId"""":""""{entityId}"""",""""identifier"""":""""{mapping["_code"]}"""",""""layer"""":""""business"""", """"message"""":""""{eventMessage}"""",""""version"""":1}}";
+
+                        await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{entityId},{targetCode},{mapping["_code"]},false,1,""{eventData}"",""{eventMetadata}"",{eventMessage},{correlationId}");
                         await entityStream.WriteLineAsync($"{mapping["_code"]},1,\"{data}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
                     }
                 }
@@ -361,37 +397,6 @@ namespace OmniaMigrationTool
                 }
             }
             return result;
-        }
-
-        private static void Import()
-        {
-            var outputMessageBuilder = new StringBuilder();
-
-            var process = new Process
-            {
-                EnableRaisingEvents = true,
-                StartInfo = new ProcessStartInfo("cmd.exe")
-                {
-                    Arguments = @"/c ""SET PGPASSWORD=NB_2012#&& D:\GitProjects\MigrationTool\OmniaMigrationTool\Tools\psql.exe -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing -c ""\copy _0c010f91ae8842ac94de3dca692f2dad_business.event_store FROM 'C:\Users\luisbarbosa\AppData\Local\Temp\tmp19B0.tmp\event_store.csv' WITH DELIMITER ',' CSV HEADER""",
-                    //WindowStyle = ProcessWindowStyle.Hidden
-                    UseShellExecute = false,
-                    CreateNoWindow = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                }
-            };
-
-            process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
-            process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
-
-            // Start process and handlers
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException(outputMessageBuilder.ToString());
         }
 
         private static async Task<List<ItemProcessed>> GetItems(Guid sourceTenant, SqlConnection conn,

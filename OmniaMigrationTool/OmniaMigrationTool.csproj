@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Npgsql" Version="4.0.3" />
     <PackageReference Include="Omnia.Libraries.GenericExtensions" Version="3.0.71" />
     <PackageReference Include="System.Data.Common" Version="4.3.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
