@@ -147,28 +147,35 @@ namespace OmniaMigrationTool
                 //new EntityMapDefinition.AttributeMap("Description",""
                 //new EntityMapDefinition.AttributeMap("ResourceType
                 //new EntityMapDefinition.AttributeMap("FileUpload
-                new EntityMapDefinition.AttributeMap("LimitItem", "ItemLimit"),
+                new EntityMapDefinition.AttributeMap("LimitItem", "ItemLimit",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
                 //new EntityMapDefinition.AttributeMap("Incidence", ""
-                new EntityMapDefinition.AttributeMap("VatValue", "VATValue"),
+                new EntityMapDefinition.AttributeMap("VatValue", "VATValue",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
                 new EntityMapDefinition.AttributeMap("ERPCostCenter","CostCenter"),
                 new EntityMapDefinition.AttributeMap("ERPGeneralAccount","GeneralAccount"),
                 //new EntityMapDefinition.AttributeMap("ERPAnalytics
-                new EntityMapDefinition.AttributeMap("VATPercentage","VATTax"),
-                new EntityMapDefinition.AttributeMap("ExpenseAmount","AmountExpenseCurrency"),
+                new EntityMapDefinition.AttributeMap("VATPercentage","VATTax",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
+                new EntityMapDefinition.AttributeMap("ExpenseAmount","AmountExpenseCurrency",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
                 new EntityMapDefinition.AttributeMap("LicensePlate","CompanyVehicle"),
                 new EntityMapDefinition.AttributeMap("DeslocationPurpose","DeslocationPurpose"),
-                new EntityMapDefinition.AttributeMap("DeslocationDistance","DeslocationDistance"),
+                new EntityMapDefinition.AttributeMap("DeslocationDistance","DeslocationDistance",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
                 //new EntityMapDefinition.AttributeMap("Deslocation","")
                 new EntityMapDefinition.AttributeMap("UnitValue","UnitValue"),
                 new EntityMapDefinition.AttributeMap("EmployeeVehicle","OtherVehicle"),
                 //new EntityMapDefinition.AttributeMap("IsFoodAllowanceType
-                new EntityMapDefinition.AttributeMap("IsOwnCarType","IsOwnCarExpense"),
+                new EntityMapDefinition.AttributeMap("IsOwnCarType","IsOwnCarExpense",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
                 //new EntityMapDefinition.AttributeMap("IsSubsistenceAllowanceType
                 new EntityMapDefinition.AttributeMap("ERPVAT", "VAT"),
                 //new EntityMapDefinition.AttributeMap("Vehicle2
                 //new EntityMapDefinition.AttributeMap("Vehicle
                 //new EntityMapDefinition.AttributeMap("ExpenseSupplier
-                new EntityMapDefinition.AttributeMap("IsCompanyCarType","IsCompanyCarExpense")
+                new EntityMapDefinition.AttributeMap("IsCompanyCarType","IsCompanyCarExpense",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal)
             };
 
             var expenseRefundRequestDefinition = new EntityMapDefinition("Commitment", "ExpenseRefundRequest",
@@ -193,7 +200,8 @@ namespace OmniaMigrationTool
 
                 new EntityMapDefinition.AttributeMap("Employee", "Employee"),
                 new EntityMapDefinition.AttributeMap("ApproveBy", "Approver"),
-                new EntityMapDefinition.AttributeMap("Amount", "Amount"),
+                new EntityMapDefinition.AttributeMap("Amount", "Amount",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
                 //new EntityMapDefinition.AttributeMap("FileUpload // TODO
                 new EntityMapDefinition.AttributeMap("ExpenseProject", "Project"),
                 new EntityMapDefinition.AttributeMap("DueDate", "_date",EntityMapDefinition.AttributeMap.AttributeType.Text, EntityMapDefinition.AttributeMap.AttributeType.Date),
@@ -203,8 +211,10 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("ExpenseDetails", "ExpenseDetails"),
                 new EntityMapDefinition.AttributeMap("Location","Location"),
                 new EntityMapDefinition.AttributeMap("ExpenseCurrency","Currency"),
-                new EntityMapDefinition.AttributeMap("Rate","Rate"),
-                new EntityMapDefinition.AttributeMap("DocumentDate","DocumentDate"),
+                new EntityMapDefinition.AttributeMap("Rate","Rate",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
+                new EntityMapDefinition.AttributeMap("DocumentDate","DocumentDate",
+                targetType: EntityMapDefinition.AttributeMap.AttributeType.Date),
                 //new EntityMapDefinition.AttributeMap("ChargeThirdParty
                 //new EntityMapDefinition.AttributeMap("ChargeThirdPartyNotes
                 //new EntityMapDefinition.AttributeMap("CompanyBaseCurrency
@@ -520,7 +530,10 @@ namespace OmniaMigrationTool
                         return Convert.ToBoolean(Convert.ToInt16(value));
 
                     default:
+                        if (attribute.Target.Equals("_code"))
+                            return value.ToString().Substring(0, Math.Min(31, value.ToString().Length)); // TODO: Deal the the difference of size in codes
                         return value.ToString();
+
                 }
             }
 
