@@ -17,6 +17,9 @@ namespace OmniaMigrationTool
     internal class Program
     {
         private static Stopwatch stopwatch = new Stopwatch();
+        private static JsonSerializerSettings jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+        private static string correlationId = Guid.NewGuid().ToString("N");
+        private static string eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
 
         private static int Main(string[] args)
         {
@@ -28,8 +31,20 @@ namespace OmniaMigrationTool
                 //command.HelpOption("-?|-h|--help");
 
                 command.OnExecute(() =>
+            {
+                AsyncMain(args).GetAwaiter().GetResult();
+                Console.ReadKey();
+                return 0;
+            });
+            });
+
+            app.Command("import", (command) =>
+            {
+                command.Description = "Import data to destination system.";
+
+                command.OnExecute(() =>
                 {
-                    AsyncMain(args).GetAwaiter().GetResult();
+                    Import();
                     Console.ReadKey();
                     return 0;
                 });
@@ -117,7 +132,6 @@ namespace OmniaMigrationTool
                 "Agent", "Company",
                 companyAttributes);
 
-
             // EXPENSE REPORT
             // ---------------------------------------------
 
@@ -155,7 +169,6 @@ namespace OmniaMigrationTool
                 //new EntityMapDefinition.AttributeMap("Vehicle
                 //new EntityMapDefinition.AttributeMap("ExpenseSupplier
                 new EntityMapDefinition.AttributeMap("IsCompanyCarType","IsCompanyCarExpense")
-
             };
 
             var expenseRefundRequestDefinition = new EntityMapDefinition("Commitment", "ExpenseRefundRequest",
@@ -197,7 +210,7 @@ namespace OmniaMigrationTool
                 //new EntityMapDefinition.AttributeMap("CompanyBaseCurrency
                 new EntityMapDefinition.AttributeMap("CreditCard","CreditCard"),
                 //new EntityMapDefinition.AttributeMap("VatAmount
-                //new EntityMapDefinition.AttributeMap("DefaultCreditCard 
+                //new EntityMapDefinition.AttributeMap("DefaultCreditCard
                 //new EntityMapDefinition.AttributeMap("ERPSimpleIdentifier // TODO: Lidar com multiplicidade //ERPIntegrations
                 //new EntityMapDefinition.AttributeMap("ERPOtherDoc // TODO: Lidar com multiplicidade //ERPIntegrations
                 //new EntityMapDefinition.AttributeMap("IsInvertedRateCalc
@@ -209,7 +222,6 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
                 //new EntityMapDefinition.AttributeMap("TeamApprover
                 //new EntityMapDefinition.AttributeMap("DepartmentsWithAccess
-
             };
 
             var expenseReportDefinition = new EntityMapDefinition("Interaction", "ExpenseReport",
@@ -219,7 +231,6 @@ namespace OmniaMigrationTool
                 {
                     expenseRefundRequestDefinition
                 });
-
 
             stopwatch.Start();
 
@@ -242,25 +253,30 @@ namespace OmniaMigrationTool
             {
                 await conn.OpenAsync();
 
-                var group = definitions.GroupBy(g => g.TargetCode);
-
-                foreach (var item in group)
+                using (var fs = new FileStream(Path.Combine(outputPath, "event_store.csv"), FileMode.OpenOrCreate, FileAccess.Write))
                 {
-                    var itemDefinitions = item.ToList();
-                    await ProcessEntity(outputPath, sourceTenant, conn,
-                        itemDefinitions);
+                    using (var sw = new StreamWriter(fs))
+                    {
+                        await sw.WriteLineAsync("id,created_at,created_by,entity_id,definition_identifier,identifier,is_removed,version,event,metadata,message,correlation_id");
+
+                        var group = definitions.GroupBy(g => g.TargetCode);
+                        foreach (var item in group)
+                        {
+                            await ProcessEntity(outputPath, sourceTenant, conn, item.AsEnumerable(), sw);
+                        }
+                    }
                 }
             }
         }
 
-        private static async Task ProcessEntity(string outputPath, Guid sourceTenant, SqlConnection conn, IList<EntityMapDefinition> definitions)
+        private static async Task ProcessEntity(string outputPath, Guid sourceTenant, SqlConnection conn, IEnumerable<EntityMapDefinition> definitions, StreamWriter eventStoreStream)
         {
             var sb = new StringBuilder();
             sb.AppendLine("identifier,version,body,created_at,updated_at");
 
-            var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            var mappingCollection = new List<Dictionary<string, object>>();
 
-            IList<Dictionary<string, object>> mappingCollection = new List<Dictionary<string, object>>();
+            var targetCode = definitions.First().TargetCode;
 
             foreach (var definition in definitions)
             {
@@ -276,10 +292,19 @@ namespace OmniaMigrationTool
                 }
             }
 
-            foreach (var mapping in mappingCollection)
-                sb.AppendLine($"{mapping["_code"]},1,\"{JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"")}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
+            using (var fs = new FileStream(Path.Combine(outputPath, $"{targetCode.ToSnakeCase()}.csv"), FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                using (var entityStream = new StreamWriter(fs))
+                {
+                    foreach (var mapping in mappingCollection)
+                    {
+                        var data = JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"");
 
-            File.WriteAllText(Path.Combine(outputPath, $"{definitions.First().TargetCode}.csv"), sb.ToString());
+                        await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{Guid.NewGuid()},{targetCode},{mapping["_code"]},false,1,""{{""""data"""":{data}}}"",""{eventMetadata}"",'{targetCode}' with code '{mapping["_code"]}' has been migrated,{correlationId}");
+                        await entityStream.WriteLineAsync($"{mapping["_code"]},1,\"{data}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
+                    }
+                }
+            }
         }
 
         private static async Task<IList<Dictionary<string, object>>> MapEntity(Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
@@ -348,7 +373,7 @@ namespace OmniaMigrationTool
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
-                    Arguments = @"/c ""SET PGPASSWORD=NB_2012#&& D:\GitProjects\MigrationTool\OmniaMigrationTool\Tools\psql.exe -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing -c ""\copy _0c010f91ae8842ac94de3dca692f2dad_business.company FROM 'C:\Users\luisbarbosa\AppData\Local\Temp\tmp19E9.tmp\Company.csv' WITH DELIMITER ',' CSV HEADER""",
+                    Arguments = @"/c ""SET PGPASSWORD=NB_2012#&& D:\GitProjects\MigrationTool\OmniaMigrationTool\Tools\psql.exe -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing -c ""\copy _0c010f91ae8842ac94de3dca692f2dad_business.event_store FROM 'C:\Users\luisbarbosa\AppData\Local\Temp\tmp19B0.tmp\event_store.csv' WITH DELIMITER ',' CSV HEADER""",
                     //WindowStyle = ProcessWindowStyle.Hidden
                     UseShellExecute = false,
                     CreateNoWindow = false,
@@ -447,18 +472,23 @@ namespace OmniaMigrationTool
                 case EntityMapDefinition.AttributeMap.AttributeType.Long:
                     data.Add(attribute.Target, Map(reader.GetInt64(reader.GetOrdinal(attribute.Source))));
                     break;
+
                 case EntityMapDefinition.AttributeMap.AttributeType.Int:
                     data.Add(attribute.Target, Map(reader.GetInt32(reader.GetOrdinal(attribute.Source))));
                     break;
+
                 case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
                     data.Add(attribute.Target, Map(reader.GetDecimal(reader.GetOrdinal(attribute.Source))));
                     break;
+
                 case EntityMapDefinition.AttributeMap.AttributeType.Date:
                     data.Add(attribute.Target, Map(reader.GetDateTime(reader.GetOrdinal(attribute.Source))));
                     break;
+
                 case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
                     data.Add(attribute.Target, Map(reader.GetBoolean(reader.GetOrdinal(attribute.Source))));
                     break;
+
                 default:
                     data.Add(attribute.Target, Map(reader.GetString(reader.GetOrdinal(attribute.Source))));
                     break;
@@ -472,18 +502,23 @@ namespace OmniaMigrationTool
                     case EntityMapDefinition.AttributeMap.AttributeType.Int:
                         if (value is int) return value;
                         return Convert.ToInt32(value);
+
                     case EntityMapDefinition.AttributeMap.AttributeType.Long:
                         if (value is long) return value;
                         return Convert.ToInt64(value);
+
                     case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
                         if (value is decimal) return value;
                         return Convert.ToDecimal(value);
+
                     case EntityMapDefinition.AttributeMap.AttributeType.Date:
                         if (value is DateTime) return value;
                         return Convert.ToDateTime(value);
+
                     case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
                         if (value is bool) return value;
                         return Convert.ToBoolean(Convert.ToInt16(value));
+
                     default:
                         return value.ToString();
                 }
@@ -497,7 +532,7 @@ namespace OmniaMigrationTool
             }
         }
 
-        internal class ItemProcessed
+        private class ItemProcessed
         {
             public ItemProcessed(long parentId, Dictionary<string, object> data)
             {
