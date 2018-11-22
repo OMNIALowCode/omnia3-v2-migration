@@ -203,7 +203,8 @@ namespace OmniaMigrationTool
                 //new EntityMapDefinition.AttributeMap("IsInvertedRateCalc
                 //new EntityMapDefinition.AttributeMap("DefaultVehicle
                 //new EntityMapDefinition.AttributeMap("Department
-                new EntityMapDefinition.AttributeMap("UseCreditCard","UseCreditCard"),
+                new EntityMapDefinition.AttributeMap("UseCreditCard","UseCreditCard",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
                 //new EntityMapDefinition.AttributeMap("EmployeeERPCode"
                 new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
                 //new EntityMapDefinition.AttributeMap("TeamApprover
@@ -444,23 +445,48 @@ namespace OmniaMigrationTool
             switch (attribute.SourceType)
             {
                 case EntityMapDefinition.AttributeMap.AttributeType.Long:
-                    data.Add(attribute.Target, MapValue(reader.GetInt64(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetInt64(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Int:
-                    data.Add(attribute.Target, MapValue(reader.GetInt32(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetInt32(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
-                    data.Add(attribute.Target, MapValue(reader.GetDecimal(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetDecimal(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Date:
-                    data.Add(attribute.Target, MapValue(reader.GetDateTime(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetDateTime(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
-                    data.Add(attribute.Target, MapValue(reader.GetBoolean(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetBoolean(reader.GetOrdinal(attribute.Source))));
                     break;
                 default:
-                    data.Add(attribute.Target, MapValue(reader.GetString(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetString(reader.GetOrdinal(attribute.Source))));
                     break;
+            }
+
+            object Map(object value)
+            {
+                value = MapValue(value);
+                switch (attribute.TargetType)
+                {
+                    case EntityMapDefinition.AttributeMap.AttributeType.Int:
+                        if (value is int) return value;
+                        return Convert.ToInt32(value);
+                    case EntityMapDefinition.AttributeMap.AttributeType.Long:
+                        if (value is long) return value;
+                        return Convert.ToInt64(value);
+                    case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
+                        if (value is decimal) return value;
+                        return Convert.ToDecimal(value);
+                    case EntityMapDefinition.AttributeMap.AttributeType.Date:
+                        if (value is DateTime) return value;
+                        return Convert.ToDateTime(value);
+                    case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
+                        if (value is bool) return value;
+                        return Convert.ToBoolean(Convert.ToInt16(value));
+                    default:
+                        return value.ToString();
+                }
             }
 
             object MapValue(object value)
