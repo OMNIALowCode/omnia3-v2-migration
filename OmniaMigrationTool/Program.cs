@@ -290,33 +290,33 @@ namespace OmniaMigrationTool
                 commandPipeline.Append($@"-c ""\copy {targetSchema}.{Path.GetFileNameWithoutExtension(file)} FROM '{Path.Combine(folderPath, file)}' WITH DELIMITER ',' CSV HEADER"" ");
             }
 
-            var process = new Process
+            using (var process = new Process
             {
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
                     Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
-                    //WindowStyle = ProcessWindowStyle.Hidden
+                    WindowStyle = ProcessWindowStyle.Hidden,
                     UseShellExecute = false,
-                    CreateNoWindow = false,
+                    CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 }
-            };
+            })
+            {
+                process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
+                process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
 
-            process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
-            process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                process.WaitForExit();
 
-            // Start process and handlers
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException(outputMessageBuilder.ToString());
+            }
 
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException(outputMessageBuilder.ToString());
-
-            Console.WriteLine("Import ");
+            Console.WriteLine("Import finished successfully.");
         }
 
         private static async Task Process(string outputPath, Guid sourceTenant, IList<EntityMapDefinition> definitions)
