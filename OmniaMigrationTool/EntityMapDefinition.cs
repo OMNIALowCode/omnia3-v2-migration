@@ -36,18 +36,25 @@ namespace OmniaMigrationTool
 
         internal class AttributeMap
         {
-            public AttributeMap(string source, string target, AttributeType sourceType = AttributeType.Text, AttributeType targetType = AttributeType.Text)
+            public AttributeMap(string source, string target,
+                AttributeType sourceType = AttributeType.Text,
+                AttributeType targetType = AttributeType.Text,
+                IList<AttributeValueMap> valueMapping = null
+                )
             {
                 Source = source;
                 Target = target;
                 SourceType = sourceType;
                 TargetType = targetType;
+                ValueMapping = valueMapping;
             }
 
             public string Source { get; }
             public string Target { get; }
             public AttributeType SourceType { get; }
             public AttributeType TargetType { get; }
+
+            public IList<AttributeValueMap> ValueMapping { get; }
 
             public enum AttributeType
             {
@@ -57,6 +64,18 @@ namespace OmniaMigrationTool
                 Decimal,
                 Date,
                 Boolean
+            }
+
+            internal class AttributeValueMap
+            {
+                public AttributeValueMap(object source, object target)
+                {
+                    Source = source;
+                    Target = target;
+                }
+
+                public object Source { get; }
+                public object Target { get; }
             }
         }
     }

@@ -168,7 +168,15 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("Number", "_number", EntityMapDefinition.AttributeMap.AttributeType.Long, EntityMapDefinition.AttributeMap.AttributeType.Int),
                 new EntityMapDefinition.AttributeMap("NumberSerieCode", "_serie"),
                 new EntityMapDefinition.AttributeMap("CompanyCode", "company"),
-                new EntityMapDefinition.AttributeMap("ApprovalStageName", "ApprovalStage"),
+                new EntityMapDefinition.AttributeMap("ApprovalStageCode", "ApprovalStage",
+                    valueMapping: new List<EntityMapDefinition.AttributeMap.AttributeValueMap>()
+                    {
+                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_Pending", "Draft"),
+                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_ProjectApprove", "ProjectApprove"),
+                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_ManagerApprove", "ManagerApprove"),
+                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_FinanceApprove", "FinanceApprove"),
+                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_Completed", "Completed")
+                    }),
 
                 new EntityMapDefinition.AttributeMap("Employee", "Employee"),
                 new EntityMapDefinition.AttributeMap("ApproveBy", "Approver"),
@@ -436,23 +444,30 @@ namespace OmniaMigrationTool
             switch (attribute.SourceType)
             {
                 case EntityMapDefinition.AttributeMap.AttributeType.Long:
-                    data.Add(attribute.Target, reader.GetInt64(reader.GetOrdinal(attribute.Source)));
+                    data.Add(attribute.Target, MapValue(reader.GetInt64(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Int:
-                    data.Add(attribute.Target, reader.GetInt32(reader.GetOrdinal(attribute.Source)));
+                    data.Add(attribute.Target, MapValue(reader.GetInt32(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
-                    data.Add(attribute.Target, reader.GetDecimal(reader.GetOrdinal(attribute.Source)));
+                    data.Add(attribute.Target, MapValue(reader.GetDecimal(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Date:
-                    data.Add(attribute.Target, reader.GetDateTime(reader.GetOrdinal(attribute.Source)));
+                    data.Add(attribute.Target, MapValue(reader.GetDateTime(reader.GetOrdinal(attribute.Source))));
                     break;
                 case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
-                    data.Add(attribute.Target, reader.GetBoolean(reader.GetOrdinal(attribute.Source)));
+                    data.Add(attribute.Target, MapValue(reader.GetBoolean(reader.GetOrdinal(attribute.Source))));
                     break;
                 default:
-                    data.Add(attribute.Target, reader.GetString(reader.GetOrdinal(attribute.Source)));
+                    data.Add(attribute.Target, MapValue(reader.GetString(reader.GetOrdinal(attribute.Source))));
                     break;
+            }
+
+            object MapValue(object value)
+            {
+                if (attribute.ValueMapping == null) return value;
+                var targetValue = attribute.ValueMapping.FirstOrDefault(v => v.Source.Equals(value))?.Target;
+                return targetValue ?? value;
             }
         }
 
