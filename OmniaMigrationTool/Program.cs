@@ -35,9 +35,11 @@ namespace OmniaMigrationTool
             {
                 command.Description = "Export data from source system.";
 
+                var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
+
                 command.OnExecute(() =>
                 {
-                    Export().GetAwaiter().GetResult();
+                    Export(tenantOption.Value()).GetAwaiter().GetResult();
                     Console.ReadKey();
                     return 0;
                 });
@@ -61,11 +63,11 @@ namespace OmniaMigrationTool
             return app.Execute(args);
         }
 
-        private static async Task Export()
+        private static async Task Export(string tenant)
         {
             var tempDir = new TempDirectory();
 
-            var sourceTenant = Guid.Parse("5b59faa8-3e4c-4d3e-82c8-2aecd1207a70");
+            var sourceTenant = Guid.Parse(tenant);
 
             // CREDIT CARD
             // --------------------------------------------
@@ -353,7 +355,7 @@ namespace OmniaMigrationTool
                 expenseReportDefinition,
                 expenseItemDefinition,
                 locationDefinition,
-                creditCardDefinition,
+                //creditCardDefinition,
             });
 
             stopwatch.Stop();
@@ -365,7 +367,8 @@ namespace OmniaMigrationTool
         {
             string targetSchema = null;
 
-            var builder = new NpgsqlConnectionStringBuilder("Server=omnia3test.postgres.database.azure.com;Database=Testing;UserId=NumbersBelieve@omnia3test;Password=NB_2012#;Pooling=true;Keepalive=10;SSL Mode=Require");
+            var builder = new NpgsqlConnectionStringBuilder("Server=pgsqlomniav3stg.postgres.database.azure.com;Database=omniadb_800119_0001;Port=5432;UserId=omniauser_800119_0001@pgsqlomniav3stg;Password=#wV8VIUbnLXf;SSL Mode = Prefer; Trust Server Certificate = true; Connection Idle Lifetime = 120");
+            //var builder = new NpgsqlConnectionStringBuilder("Server=omnia3test.postgres.database.azure.com;Database=Testing;UserId=NumbersBelieve@omnia3test;Password=NB_2012#;Pooling=true;Keepalive=10;SSL Mode=Require");
             using (var conn = new NpgsqlConnection(builder.ConnectionString))
             {
                 await conn.OpenAsync();
@@ -420,7 +423,8 @@ namespace OmniaMigrationTool
 
         private static async Task Process(string outputPath, Guid sourceTenant, IList<EntityMapDefinition> definitions)
         {
-            using (var conn = new SqlConnection("Data Source=sqlsrvmymis66ey4j7eutvtc.database.windows.net;Initial Catalog=sqldbmymis66ey4j7eutvtc;user id=MyMisMaster;password=4FXsJMDlp5JWHIzk;MultipleActiveResultSets=True;Connection Timeout=60"))
+            // using (var conn = new SqlConnection("Data Source=sqlsrvmymis66ey4j7eutvtc.database.windows.net;Initial Catalog=sqldbmymis66ey4j7eutvtc;user id=MyMisMaster;password=4FXsJMDlp5JWHIzk;MultipleActiveResultSets=True;Connection Timeout=60"))
+            using (var conn = new SqlConnection("Data Source=sqlsrvomniaomniashare.database.windows.net;Initial Catalog=sqldbomniaomniaitdst;user id=sqlsrvomniaAdminLoginomniaitdst;password=2F6hfMGvs0C7m57r;MultipleActiveResultSets=True;Connection Timeout=60"))
             {
                 await conn.OpenAsync();
 
