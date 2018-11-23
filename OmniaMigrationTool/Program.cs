@@ -493,12 +493,16 @@ namespace OmniaMigrationTool
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
             var commitmentDictionary = new Dictionary<string, List<ItemProcessed>>();
+            var eventDictionary = new Dictionary<string, List<ItemProcessed>>();
 
             foreach (var item in definition.Items)
                 itemDictionary.Add(item.SourceCode, await GetItems(sourceTenant, conn, item));
 
             foreach (var item in definition.Commitments)
-                commitmentDictionary.Add(item.SourceCode, await GetCommitments(sourceTenant, conn, item));
+                commitmentDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
+
+            foreach (var item in definition.Events)
+                eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
 
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(sourceTenant,
@@ -533,9 +537,15 @@ namespace OmniaMigrationTool
                                 mapping[item.TargetCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
-                            
+
+                            foreach (var item in definition.Events)
+                            {
+                                mapping[item.TargetCode] = eventDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                    .Select(i => i.Data);
+                            }
+
                             // Rewrite series in case of documents
-                            if(definition.TargetKind.EqualsIgnoringCase("Document"))
+                            if (definition.TargetKind.EqualsIgnoringCase("Document"))
                                     mapping["_serie"] = $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{mapping["_serie"]}";
 
                             result.Add(mapping);
@@ -585,7 +595,7 @@ namespace OmniaMigrationTool
             return result;
         }
 
-        private static async Task<List<ItemProcessed>> GetCommitments(Guid sourceTenant, SqlConnection conn,
+        private static async Task<List<ItemProcessed>> GetTransactionalEntity(Guid sourceTenant, SqlConnection conn,
             EntityMapDefinition definition)
         {
             var result = new List<ItemProcessed>();
