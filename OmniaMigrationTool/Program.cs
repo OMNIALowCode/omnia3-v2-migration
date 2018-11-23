@@ -11,6 +11,9 @@ using System.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 using Omnia.Libraries.GenericExtensions;
 using System.IO;
+using Npgsql;
+using OmniaMigrationTool.Queries;
+using System.Globalization;
 
 namespace OmniaMigrationTool
 {
@@ -23,6 +26,9 @@ namespace OmniaMigrationTool
 
         private static int Main(string[] args)
         {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
             var app = new CommandLineApplication();
 
             app.Command("export", (command) =>
@@ -42,10 +48,11 @@ namespace OmniaMigrationTool
                 command.Description = "Import data to destination system.";
 
                 var folderOption = command.Option("--f", "Import folder path", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("--t", "Import tenant", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
-                    Import(folderOption.Value());
+                    Import(folderOption.Value(), tenantOption.Value()).GetAwaiter().GetResult();
                     Console.ReadKey();
                     return 0;
                 });
@@ -59,6 +66,98 @@ namespace OmniaMigrationTool
             var tempDir = new TempDirectory();
 
             var sourceTenant = Guid.Parse("5b59faa8-3e4c-4d3e-82c8-2aecd1207a70");
+
+            // CREDIT CARD
+            // --------------------------------------------
+            var creditCardAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("Company", "Company"),
+                new EntityMapDefinition.AttributeMap("Employee", "Employee"),
+                new EntityMapDefinition.AttributeMap("CardAccount", "Account"),
+                new EntityMapDefinition.AttributeMap("Primavera", "Primavera")
+            };
+
+            var creditCardDefinition = new EntityMapDefinition("UserDefinedEntity", "CreditCard",
+                "GenericEntity", "CreditCard", creditCardAttributes);
+
+            // LOCATION
+            // --------------------------------------------
+            var locationAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("Location_Company", "CompanyConfiguration")
+            };
+
+            var locationDefinition = new EntityMapDefinition("UserDefinedEntity", "Location",
+                "GenericEntity", "Location", locationAttributes);
+
+            // EXPENSE ITEM
+            // ---------------------------------------------
+            var expenseCompanyConfigAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("ERPExpenseCode", "TreasuryItem"),
+                new EntityMapDefinition.AttributeMap("CompanyCode", "Company"),
+                //new EntityMapDefinition.AttributeMap("TreasuryHeading", ""),
+                new EntityMapDefinition.AttributeMap("ERPGeneralAccount", "FinancialAccount"),
+                new EntityMapDefinition.AttributeMap("ERPAnalytics", "AnalyticAccount"),
+                new EntityMapDefinition.AttributeMap("IntegratesAbsence", "IntegratesAbsence", targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
+                new EntityMapDefinition.AttributeMap("IntegratesMonthlyChange", "IntegratesRemuneration", targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
+                new EntityMapDefinition.AttributeMap("MonthlyChangeCode", "RemunerationType"),
+                new EntityMapDefinition.AttributeMap("AbsenseCode", "AbsenceType"),
+                new EntityMapDefinition.AttributeMap("BankMovementType", "BankDocument"),
+                //new EntityMapDefinition.AttributeMap("Supplier", ""),
+                new EntityMapDefinition.AttributeMap("Primavera", "Primavera")
+            };
+
+            var expenseLocationConfigAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("CompanyCode", "Company"),
+                new EntityMapDefinition.AttributeMap("Location", "Location"),
+                new EntityMapDefinition.AttributeMap("ERPVAT", "VAT"),
+                new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
+            };
+
+            var expenseCompanyConfigDefinition = new EntityMapDefinition("MisEntityItem", "ExpenseItemERPConfig",
+                "GenericEntity", "ExpenseCompanyConfig", expenseCompanyConfigAttributes);
+
+            var expenseLocationConfigDefinition = new EntityMapDefinition("MisEntityItem", "ExpenseItemVATConfig",
+                "GenericEntity", "ExpenseLocationConfig", expenseLocationConfigAttributes);
+
+            var expenseItemDefinition = new EntityMapDefinition("Resource", "ExpenseItem",
+                "Resource", "ExpenseItem",
+                "Primavera"
+                    .Split(",")
+                    .Select(c => new EntityMapDefinition.AttributeMap(c, c)).ToList(),
+                new List<EntityMapDefinition>()
+                {
+                    expenseCompanyConfigDefinition,
+                    expenseLocationConfigDefinition
+                });
+
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_name"));
+
+            //expenseItemDefinition
+            //                .Attributes.Add(new EntityMapDefinition.AttributeMap("Type",));
+            //expenseItemDefinition
+            //                .Attributes.Add(new EntityMapDefinition.AttributeMap("TipMessage",));
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("HasKmsMatrix", "EmployeeCarExpense",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
+            //expenseItemDefinition
+            //    .Attributes.Add(new EntityMapDefinition.AttributeMap("LimitPerItem",));
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("IsCompanyCarType", "CompanyCarExpense",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
 
             // EMPLOYEE
             // ---------------------------------------------
@@ -85,8 +184,6 @@ namespace OmniaMigrationTool
                 {
                     employeeErpConfigDefinition
                 });
-
-            
 
             employeeDefinition
                 .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
@@ -144,7 +241,6 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("ProviderAgentCode", "_provider"),
                 new EntityMapDefinition.AttributeMap("ReceiverAgentCode", "_receiver"),
                 new EntityMapDefinition.AttributeMap("ResourceCode", "_resource"),
-
 
                 //new EntityMapDefinition.AttributeMap("ResourceName"
                 new EntityMapDefinition.AttributeMap("ExpenseDetails","Details"),
@@ -254,7 +350,10 @@ namespace OmniaMigrationTool
             {
                 employeeDefinition,
                 companyDefinition,
-                expenseReportDefinition
+                expenseReportDefinition,
+                expenseItemDefinition,
+                locationDefinition,
+                creditCardDefinition,
             });
 
             stopwatch.Stop();
@@ -262,9 +361,23 @@ namespace OmniaMigrationTool
             Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
         }
 
-        private static void Import(string folderPath)
+        private static async Task Import(string folderPath, string tenantCode)
         {
-            string targetSchema = "_9dbc1b38429446a09bbf9e313d5115a9_business";
+            string targetSchema = null;
+
+            var builder = new NpgsqlConnectionStringBuilder("Server=omnia3test.postgres.database.azure.com;Database=Testing;UserId=NumbersBelieve@omnia3test;Password=NB_2012#;Pooling=true;Keepalive=10;SSL Mode=Require");
+            using (var conn = new NpgsqlConnection(builder.ConnectionString))
+            {
+                await conn.OpenAsync();
+
+                using (var command = new NpgsqlCommand(TargetQueries.TenantSchemaQuery, conn))
+                {
+                    command.CommandTimeout = 360;
+                    command.Parameters.Add(new NpgsqlParameter("@code", tenantCode));
+
+                    targetSchema = (await command.ExecuteScalarAsync()) as string;
+                }
+            }
 
             var outputMessageBuilder = new StringBuilder();
             var commandPipeline = new StringBuilder();
@@ -276,33 +389,33 @@ namespace OmniaMigrationTool
                 commandPipeline.Append($@"-c ""\copy {targetSchema}.{Path.GetFileNameWithoutExtension(file)} FROM '{Path.Combine(folderPath, file)}' WITH DELIMITER ',' CSV HEADER"" ");
             }
 
-            var process = new Process
+            using (var process = new Process
             {
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
-                    Arguments = $@"/c ""SET PGPASSWORD=NB_2012#&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U NumbersBelieve@omnia3test -p 5432 -h omnia3test.postgres.database.azure.com -d Testing {commandPipeline.ToString()}",
-                    //WindowStyle = ProcessWindowStyle.Hidden
+                    Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
+                    WindowStyle = ProcessWindowStyle.Hidden,
                     UseShellExecute = false,
-                    CreateNoWindow = false,
+                    CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 }
-            };
+            })
+            {
+                process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
+                process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
 
-            process.OutputDataReceived += (s, e) => Console.WriteLine(e.Data);
-            process.ErrorDataReceived += (s, e) => outputMessageBuilder.AppendLine(e.Data);
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                process.WaitForExit();
 
-            // Start process and handlers
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            process.WaitForExit();
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException(outputMessageBuilder.ToString());
+            }
 
-            if (process.ExitCode != 0)
-                throw new InvalidOperationException(outputMessageBuilder.ToString());
-
-            Console.WriteLine("Import ");
+            Console.WriteLine("Import finished successfully.");
         }
 
         private static async Task Process(string outputPath, Guid sourceTenant, IList<EntityMapDefinition> definitions)
@@ -553,7 +666,6 @@ namespace OmniaMigrationTool
                         if (attribute.Target.Equals("_code"))
                             return value.ToString().Substring(0, Math.Min(31, value.ToString().Length)); // TODO: Deal the the difference of size in codes
                         return value.ToString();
-
                 }
             }
 
