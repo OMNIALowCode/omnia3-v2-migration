@@ -63,6 +63,21 @@ namespace OmniaMigrationTool
 
             var sourceTenant = Guid.Parse("5b59faa8-3e4c-4d3e-82c8-2aecd1207a70");
 
+            // CREDIT CARD
+            // --------------------------------------------
+            var creditCardAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("Company", "Company"),
+                new EntityMapDefinition.AttributeMap("Employee", "Employee"),
+                new EntityMapDefinition.AttributeMap("CardAccount", "Account"),
+                new EntityMapDefinition.AttributeMap("Primavera", "Primavera")
+            };
+
+            var creditCardDefinition = new EntityMapDefinition("UserDefinedEntity", "Location",
+                "GenericEntity", "Location", creditCardAttributes);
+
             // LOCATION
             // --------------------------------------------
             var locationAttributes = new List<EntityMapDefinition.AttributeMap>
@@ -118,7 +133,8 @@ namespace OmniaMigrationTool
                     .Select(c => new EntityMapDefinition.AttributeMap(c, c)).ToList(),
                 new List<EntityMapDefinition>()
                 {
-                    expenseCompanyConfigDefinition
+                    expenseCompanyConfigDefinition,
+                    expenseLocationConfigDefinition
                 });
 
             expenseItemDefinition
@@ -331,7 +347,9 @@ namespace OmniaMigrationTool
                 employeeDefinition,
                 companyDefinition,
                 expenseReportDefinition,
-                expenseItemDefinition
+                expenseItemDefinition,
+                locationDefinition,
+                creditCardDefinition,
             });
 
             stopwatch.Stop();
