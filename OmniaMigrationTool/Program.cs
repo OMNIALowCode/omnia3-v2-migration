@@ -24,6 +24,9 @@ namespace OmniaMigrationTool
         private static string correlationId = Guid.NewGuid().ToString("N");
         private static string eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
 
+        private static SeriesProcessor
+            SeriesProcessor = new SeriesProcessor(jsonSettings, correlationId, eventMetadata);
+
         private static int Main(string[] args)
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -430,6 +433,10 @@ namespace OmniaMigrationTool
                     {
                         await sw.WriteLineAsync("id,created_at,created_by,entity_id,definition_identifier,identifier,is_removed,version,event,metadata,message,correlation_id");
 
+                        // Process Series
+                        await SeriesProcessor.ProcessAsync(outputPath, sourceTenant, conn, sw);
+
+                        // Process Entities
                         var group = definitions.GroupBy(g => g.TargetCode);
                         foreach (var item in group)
                         {
@@ -511,7 +518,9 @@ namespace OmniaMigrationTool
                             var mapping = new Dictionary<string, object>();
 
                             foreach (var attribute in definition.Attributes)
+                            {
                                 MapAttribute(mapping, reader, attribute);
+                            }
 
                             foreach (var item in definition.Items)
                             {
@@ -524,6 +533,10 @@ namespace OmniaMigrationTool
                                 mapping[item.TargetCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
+                            
+                            // Rewrite series in case of documents
+                            if(definition.TargetKind.EqualsIgnoringCase("Document"))
+                                    mapping["_serie"] = $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{mapping["_serie"]}";
 
                             result.Add(mapping);
                         }
