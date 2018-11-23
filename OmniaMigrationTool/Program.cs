@@ -63,6 +63,18 @@ namespace OmniaMigrationTool
 
             var sourceTenant = Guid.Parse("5b59faa8-3e4c-4d3e-82c8-2aecd1207a70");
 
+            // LOCATION
+            // --------------------------------------------
+            var locationAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("Location_Company", "CompanyConfiguration")
+            };
+
+            var locationDefinition = new EntityMapDefinition("UserDefinedEntity", "Location",
+                "GenericEntity", "Location", locationAttributes);
+
             // EXPENSE ITEM
             // ---------------------------------------------
             var expenseCompanyConfigAttributes = new List<EntityMapDefinition.AttributeMap>
