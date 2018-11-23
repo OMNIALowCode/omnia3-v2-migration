@@ -63,6 +63,70 @@ namespace OmniaMigrationTool
 
             var sourceTenant = Guid.Parse("5b59faa8-3e4c-4d3e-82c8-2aecd1207a70");
 
+            // EXPENSE ITEM
+            // ---------------------------------------------
+            var expenseCompanyConfigAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("ERPExpenseCode", "TreasuryItem"),
+                new EntityMapDefinition.AttributeMap("CompanyCode", "Company"),
+                //new EntityMapDefinition.AttributeMap("TreasuryHeading", ""),
+                new EntityMapDefinition.AttributeMap("ERPGeneralAccount", "FinancialAccount"),
+                new EntityMapDefinition.AttributeMap("ERPAnalytics", "AnalyticAccount"),
+                new EntityMapDefinition.AttributeMap("IntegratesAbsence", "IntegratesAbsence", targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
+                new EntityMapDefinition.AttributeMap("IntegratesMonthlyChange", "IntegratesRemuneration", targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
+                new EntityMapDefinition.AttributeMap("MonthlyChangeCode", "RemunerationType"),
+                new EntityMapDefinition.AttributeMap("AbsenseCode", "AbsenceType"),
+                new EntityMapDefinition.AttributeMap("BankMovementType", "BankDocument"),
+                //new EntityMapDefinition.AttributeMap("Supplier", ""),
+                new EntityMapDefinition.AttributeMap("Primavera", "Primavera")
+            };
+
+            var expenseLocationConfigAttributes = new List<EntityMapDefinition.AttributeMap>
+            {
+                new EntityMapDefinition.AttributeMap("Code", "_code"),
+                new EntityMapDefinition.AttributeMap("Code", "_name"),
+                new EntityMapDefinition.AttributeMap("CompanyCode", "Company"),
+                new EntityMapDefinition.AttributeMap("Location", "Location"),
+                new EntityMapDefinition.AttributeMap("ERPVAT", "VAT"),
+                new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
+            };
+
+            var expenseCompanyConfigDefinition = new EntityMapDefinition("MisEntityItem", "ExpenseItemERPConfig",
+                "GenericEntity", "ExpenseCompanyConfig", expenseCompanyConfigAttributes);
+
+            var expenseLocationConfigDefinition = new EntityMapDefinition("MisEntityItem", "ExpenseItemVATConfig",
+                "GenericEntity", "ExpenseLocationConfig", expenseLocationConfigAttributes);
+
+            var expenseItemDefinition = new EntityMapDefinition("Resource", "ExpenseItem",
+                "Resource", "ExpenseItem",
+                "Primavera"
+                    .Split(",")
+                    .Select(c => new EntityMapDefinition.AttributeMap(c, c)).ToList(),
+                new List<EntityMapDefinition>()
+                {
+                    expenseCompanyConfigDefinition
+                });
+
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_name"));
+
+            //expenseItemDefinition
+            //                .Attributes.Add(new EntityMapDefinition.AttributeMap("Type",));
+            //expenseItemDefinition
+            //                .Attributes.Add(new EntityMapDefinition.AttributeMap("TipMessage",));
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("HasKmsMatrix", "EmployeeCarExpense",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
+            //expenseItemDefinition
+            //    .Attributes.Add(new EntityMapDefinition.AttributeMap("LimitPerItem",));
+            expenseItemDefinition
+                .Attributes.Add(new EntityMapDefinition.AttributeMap("IsCompanyCarType", "CompanyCarExpense",
+                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
+
             // EMPLOYEE
             // ---------------------------------------------
             var employeeErpConfigDefinition = new EntityMapDefinition("MisEntityItem", "EmployeeERPConfig",
@@ -254,7 +318,8 @@ namespace OmniaMigrationTool
             {
                 employeeDefinition,
                 companyDefinition,
-                expenseReportDefinition
+                expenseReportDefinition,
+                expenseItemDefinition
             });
 
             stopwatch.Stop();

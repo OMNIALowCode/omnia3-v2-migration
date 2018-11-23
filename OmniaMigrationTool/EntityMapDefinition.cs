@@ -23,16 +23,20 @@ namespace OmniaMigrationTool
         }
 
         public string SourceKind { get; }
+
         public string SourceCode { get; }
 
         public string TargetKind { get; }
+
         public string TargetCode { get; }
+
         public IList<AttributeMap> Attributes { get; }
 
         public IList<EntityMapDefinition> Items { get; }
-        public IList<EntityMapDefinition> Commitments { get; }
-        public IList<EntityMapDefinition> Events { get; }
 
+        public IList<EntityMapDefinition> Commitments { get; }
+
+        public IList<EntityMapDefinition> Events { get; }
 
         internal class AttributeMap
         {
@@ -50,8 +54,11 @@ namespace OmniaMigrationTool
             }
 
             public string Source { get; }
+
             public string Target { get; }
+
             public AttributeType SourceType { get; }
+
             public AttributeType TargetType { get; }
 
             public IList<AttributeValueMap> ValueMapping { get; }
@@ -75,10 +82,9 @@ namespace OmniaMigrationTool
                 }
 
                 public object Source { get; }
+
                 public object Target { get; }
             }
         }
     }
-
-
 }
