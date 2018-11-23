@@ -13,6 +13,7 @@ using Omnia.Libraries.GenericExtensions;
 using System.IO;
 using Npgsql;
 using OmniaMigrationTool.Queries;
+using System.Globalization;
 
 namespace OmniaMigrationTool
 {
@@ -25,6 +26,9 @@ namespace OmniaMigrationTool
 
         private static int Main(string[] args)
         {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
             var app = new CommandLineApplication();
 
             app.Command("export", (command) =>
@@ -75,8 +79,8 @@ namespace OmniaMigrationTool
                 new EntityMapDefinition.AttributeMap("Primavera", "Primavera")
             };
 
-            var creditCardDefinition = new EntityMapDefinition("UserDefinedEntity", "Location",
-                "GenericEntity", "Location", creditCardAttributes);
+            var creditCardDefinition = new EntityMapDefinition("UserDefinedEntity", "CreditCard",
+                "GenericEntity", "CreditCard", creditCardAttributes);
 
             // LOCATION
             // --------------------------------------------
