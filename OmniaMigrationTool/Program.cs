@@ -366,7 +366,7 @@ namespace OmniaMigrationTool
 
         private static async Task Import(string folderPath, string tenantCode)
         {
-            string targetSchema = null;
+            string targetSchema;
 
             var builder = new NpgsqlConnectionStringBuilder("Server=omnia3test.postgres.database.azure.com;Database=Testing;UserId=NumbersBelieve@omnia3test;Password=NB_2012#;Pooling=true;Keepalive=10;SSL Mode=Require");
             using (var conn = new NpgsqlConnection(builder.ConnectionString))
@@ -385,7 +385,7 @@ namespace OmniaMigrationTool
             var outputMessageBuilder = new StringBuilder();
             var commandPipeline = new StringBuilder();
 
-            Console.WriteLine($"Readind from folder: {folderPath}");
+            Console.WriteLine($"Reading from folder: {folderPath}");
 
             foreach (var file in Directory.EnumerateFiles(folderPath, "*.csv", SearchOption.AllDirectories))
             {
@@ -397,7 +397,7 @@ namespace OmniaMigrationTool
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
-                    Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
+                    Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline}",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     UseShellExecute = false,
                     CreateNoWindow = true,
@@ -505,7 +505,7 @@ namespace OmniaMigrationTool
                 eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
 
             using (var command = new SqlCommand(
-                Queries.SourceQueries.EntityQuery(sourceTenant,
+                SourceQueries.EntityQuery(sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Select(c => c.Source).ToArray()), conn))
             {
@@ -566,7 +566,7 @@ namespace OmniaMigrationTool
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
-                Queries.SourceQueries.EntityQuery(sourceTenant,
+                SourceQueries.EntityQuery(sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Select(c => c.Source).ToArray()
                         ), conn))
@@ -600,7 +600,7 @@ namespace OmniaMigrationTool
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
-                Queries.SourceQueries.TransactionalEntityQuery(sourceTenant,
+                SourceQueries.TransactionalEntityQuery(sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Select(c => c.Source).ToArray()
                 ), conn))
