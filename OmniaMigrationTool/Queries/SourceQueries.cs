@@ -65,6 +65,15 @@ namespace OmniaMigrationTool.Queries
         ) AS eav ON eav.MisEntityID = me.ID
         WHERE t.Code = @code;";
 
+        private const string NumeratorsQueryTemplate = @"SELECT mt.Code 'TypeCode', comp.Code 'CompanyCode', 
+        num.ShortCode,
+        num.LastUsedValue
+    FROM [{0}].Numerators num
+    INNER JOIN [{0}].MisEntityTypes mt 
+        ON num.MisEntityTypeID = mt.ID
+    INNER JOIN [{0}].MisEntities comp 
+        ON num.CompanyID = comp.ID;";
+
         public static string EntityQuery(Guid tenant, string kind, string[] customAttributes)
         {
             var customJoin = string.Empty;
@@ -99,6 +108,9 @@ namespace OmniaMigrationTool.Queries
         public static string TransactionalEntityQuery(Guid tenant, string kind, string[] customAttributes)
             => string.Format(TransactionalEntityQueryTemplate, tenant, kind, string.Join(",",
                 customAttributes.Where(c => !EntitySystemAttributes.Contains(c) && !TransactionalEntitySystemAttributes.Contains(c))));
+
+        public static string NumeratorsQuery(Guid tenant)
+            => string.Format(NumeratorsQueryTemplate, tenant);
 
     }
 }

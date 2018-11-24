@@ -24,6 +24,9 @@ namespace OmniaMigrationTool
         private static string correlationId = Guid.NewGuid().ToString("N");
         private static string eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
 
+        private static SeriesProcessor
+            SeriesProcessor = new SeriesProcessor(jsonSettings, correlationId, eventMetadata);
+
         private static int Main(string[] args)
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -363,7 +366,7 @@ namespace OmniaMigrationTool
 
         private static async Task Import(string folderPath, string tenantCode)
         {
-            string targetSchema = null;
+            string targetSchema;
 
             var builder = new NpgsqlConnectionStringBuilder("Server=omnia3test.postgres.database.azure.com;Database=Testing;UserId=NumbersBelieve@omnia3test;Password=NB_2012#;Pooling=true;Keepalive=10;SSL Mode=Require");
             using (var conn = new NpgsqlConnection(builder.ConnectionString))
@@ -382,7 +385,7 @@ namespace OmniaMigrationTool
             var outputMessageBuilder = new StringBuilder();
             var commandPipeline = new StringBuilder();
 
-            Console.WriteLine($"Readind from folder: {folderPath}");
+            Console.WriteLine($"Reading from folder: {folderPath}");
 
             foreach (var file in Directory.EnumerateFiles(folderPath, "*.csv", SearchOption.AllDirectories))
             {
@@ -394,7 +397,7 @@ namespace OmniaMigrationTool
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
-                    Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
+                    Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline}",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     UseShellExecute = false,
                     CreateNoWindow = true,
@@ -430,6 +433,10 @@ namespace OmniaMigrationTool
                     {
                         await sw.WriteLineAsync("id,created_at,created_by,entity_id,definition_identifier,identifier,is_removed,version,event,metadata,message,correlation_id");
 
+                        // Process Series
+                        await SeriesProcessor.ProcessAsync(outputPath, sourceTenant, conn, sw);
+
+                        // Process Entities
                         var group = definitions.GroupBy(g => g.TargetCode);
                         foreach (var item in group)
                         {
@@ -486,15 +493,19 @@ namespace OmniaMigrationTool
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
             var commitmentDictionary = new Dictionary<string, List<ItemProcessed>>();
+            var eventDictionary = new Dictionary<string, List<ItemProcessed>>();
 
             foreach (var item in definition.Items)
                 itemDictionary.Add(item.SourceCode, await GetItems(sourceTenant, conn, item));
 
             foreach (var item in definition.Commitments)
-                commitmentDictionary.Add(item.SourceCode, await GetCommitments(sourceTenant, conn, item));
+                commitmentDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
+
+            foreach (var item in definition.Events)
+                eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
 
             using (var command = new SqlCommand(
-                Queries.SourceQueries.EntityQuery(sourceTenant,
+                SourceQueries.EntityQuery(sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Select(c => c.Source).ToArray()), conn))
             {
@@ -511,7 +522,9 @@ namespace OmniaMigrationTool
                             var mapping = new Dictionary<string, object>();
 
                             foreach (var attribute in definition.Attributes)
+                            {
                                 MapAttribute(mapping, reader, attribute);
+                            }
 
                             foreach (var item in definition.Items)
                             {
@@ -524,6 +537,16 @@ namespace OmniaMigrationTool
                                 mapping[item.TargetCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
+
+                            foreach (var item in definition.Events)
+                            {
+                                mapping[item.TargetCode] = eventDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                    .Select(i => i.Data);
+                            }
+
+                            // Rewrite series in case of documents
+                            if (definition.TargetKind.EqualsIgnoringCase("Document"))
+                                    mapping["_serie"] = $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{mapping["_serie"]}";
 
                             result.Add(mapping);
                         }
@@ -543,7 +566,7 @@ namespace OmniaMigrationTool
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
-                Queries.SourceQueries.EntityQuery(sourceTenant,
+                SourceQueries.EntityQuery(sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Select(c => c.Source).ToArray()
                         ), conn))
@@ -572,12 +595,12 @@ namespace OmniaMigrationTool
             return result;
         }
 
-        private static async Task<List<ItemProcessed>> GetCommitments(Guid sourceTenant, SqlConnection conn,
+        private static async Task<List<ItemProcessed>> GetTransactionalEntity(Guid sourceTenant, SqlConnection conn,
             EntityMapDefinition definition)
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
-                Queries.SourceQueries.TransactionalEntityQuery(sourceTenant,
+                SourceQueries.TransactionalEntityQuery(sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Select(c => c.Source).ToArray()
                 ), conn))
