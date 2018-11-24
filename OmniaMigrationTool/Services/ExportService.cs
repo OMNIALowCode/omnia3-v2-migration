@@ -21,12 +21,12 @@ namespace OmniaMigrationTool.Services
 
         private readonly TextWriter _textWriter;
         private readonly Guid _sourceTenant;
-        private readonly string _ConnectionString;
+        private readonly string _connectionString;
 
         public ExportService(TextWriter textWriter, string tenant, string connectionString)
         {
             _sourceTenant = Guid.Parse(tenant);
-            _ConnectionString = connectionString;
+            _connectionString = connectionString;
         }
 
         public async Task Export()
@@ -330,7 +330,7 @@ namespace OmniaMigrationTool.Services
         private async Task Process(string outputPath, Guid sourceTenant, IList<EntityMapDefinition> definitions)
         {
             // using (var conn = new SqlConnection("Data Source=sqlsrvmymis66ey4j7eutvtc.database.windows.net;Initial Catalog=sqldbmymis66ey4j7eutvtc;user id=MyMisMaster;password=4FXsJMDlp5JWHIzk;MultipleActiveResultSets=True;Connection Timeout=60"))
-            using (var conn = new SqlConnection("Data Source=sqlsrvomniaomniashare.database.windows.net;Initial Catalog=sqldbomniaomniaitdst;user id=sqlsrvomniaAdminLoginomniaitdst;password=2F6hfMGvs0C7m57r;MultipleActiveResultSets=True;Connection Timeout=60"))
+            using (var conn = new SqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
 
