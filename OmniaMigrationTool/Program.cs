@@ -2,11 +2,17 @@
 using Microsoft.Extensions.CommandLineUtils;
 using System.Globalization;
 using OmniaMigrationTool.Services;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace OmniaMigrationTool
 {
     internal class Program
     {
+        private static JsonSerializerSettings _jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+        private static string _correlationId = Guid.NewGuid().ToString("N");
+        private static string _eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
+
         private static int Main(string[] args)
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -23,7 +29,8 @@ namespace OmniaMigrationTool
 
                 command.OnExecute(() =>
                 {
-                    var service = new ExportService(app.Out, tenantOption.Value(), connectionStringOption.Value());
+                    var seriesProcessor = new SeriesProcessor(_jsonSettings, _correlationId, _eventMetadata);
+                    var service = new ExportService(tenantOption.Value(), connectionStringOption.Value(), _correlationId, _eventMetadata, seriesProcessor, _jsonSettings);
                     service.Export().GetAwaiter().GetResult();
                     Console.ReadKey();
                     return 0;

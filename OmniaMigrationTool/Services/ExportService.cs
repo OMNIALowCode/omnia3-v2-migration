@@ -15,18 +15,22 @@ namespace OmniaMigrationTool.Services
     internal class ExportService
     {
         private static Stopwatch stopwatch = new Stopwatch();
-        private static JsonSerializerSettings jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
-        private static string correlationId = Guid.NewGuid().ToString("N");
-        private static string eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
 
-        private readonly TextWriter _textWriter;
         private readonly Guid _sourceTenant;
         private readonly string _connectionString;
+        private readonly string _correlationId;
+        private readonly string _eventMetadata;
+        private readonly SeriesProcessor _seriesProcessor;
+        private readonly JsonSerializerSettings _jsonSettings;
 
-        public ExportService(TextWriter textWriter, string tenant, string connectionString)
+        public ExportService(string tenant, string connectionString, string correlationId, string eventMetadata, SeriesProcessor seriesProcessor, JsonSerializerSettings jsonSettings)
         {
             _sourceTenant = Guid.Parse(tenant);
             _connectionString = connectionString;
+            _correlationId = correlationId;
+            _eventMetadata = eventMetadata;
+            _seriesProcessor = seriesProcessor;
+            _jsonSettings = jsonSettings;
         }
 
         public async Task Export()
@@ -340,6 +344,10 @@ namespace OmniaMigrationTool.Services
                     {
                         await sw.WriteLineAsync("id,created_at,created_by,entity_id,definition_identifier,identifier,is_removed,version,event,metadata,message,correlation_id");
 
+                        // Process Series
+                        await _seriesProcessor.ProcessAsync(outputPath, sourceTenant, conn, sw);
+
+                        // Process Entities
                         var group = definitions.GroupBy(g => g.TargetCode);
                         foreach (var item in group)
                         {
@@ -380,11 +388,11 @@ namespace OmniaMigrationTool.Services
                     {
                         var entityId = Guid.NewGuid();
                         var eventMessage = $@"'{targetCode}' with code '{mapping["_code"]}' has been migrated";
-                        var data = JsonConvert.SerializeObject(mapping, jsonSettings).Replace("\"", "\"\"");
+                        var data = JsonConvert.SerializeObject(mapping, _jsonSettings).Replace("\"", "\"\"");
 
                         var eventData = $@"{{""""data"""":{data},""""classifier"""":""""{targetCode}"""",""""entityId"""":""""{entityId}"""",""""identifier"""":""""{mapping["_code"]}"""",""""layer"""":""""business"""", """"message"""":""""{eventMessage}"""",""""version"""":1}}";
 
-                        await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{entityId},{targetCode},{mapping["_code"]},false,1,""{eventData}"",""{eventMetadata}"",{eventMessage},{correlationId}");
+                        await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{entityId},{targetCode},{mapping["_code"]},false,1,""{eventData}"",""{_eventMetadata}"",{eventMessage},{_correlationId}");
                         await entityStream.WriteLineAsync($"{mapping["_code"]},1,\"{data}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
                     }
                 }
