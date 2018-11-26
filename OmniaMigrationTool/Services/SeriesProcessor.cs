@@ -2,21 +2,23 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Linq;
 using Omnia.Libraries.GenericExtensions;
 
-namespace OmniaMigrationTool
+namespace OmniaMigrationTool.Services
 {
     internal class SeriesProcessor
     {
+        private readonly IList<EntityMapDefinition> _definitions;
         private readonly JsonSerializerSettings _jsonSettings;
         private readonly string _correlationId;
         private readonly string _eventMetadata;
-        public SeriesProcessor(JsonSerializerSettings jsonSettings, string correlationId, string eventMetadata)
+
+        public SeriesProcessor(IList<EntityMapDefinition> definitions, JsonSerializerSettings jsonSettings, string correlationId, string eventMetadata)
         {
+            _definitions = definitions;
             _jsonSettings = jsonSettings;
             _correlationId = correlationId;
             _eventMetadata = eventMetadata;
@@ -26,7 +28,7 @@ namespace OmniaMigrationTool
         {
             var series = await ProcessAsync(sourceTenant, conn);
 
-            var groupedSeries = series.GroupBy(g => g.TypeCode);
+            var groupedSeries = series.Where(num => _definitions.Any(d => d.TargetCode == num.TypeCode)).GroupBy(g => g.TypeCode);
 
             foreach (var group in groupedSeries)
             {
@@ -56,7 +58,7 @@ namespace OmniaMigrationTool
                             var eventData = $@"{{""""data"""":{data},""""classifier"""":""""{serieClassifier}"""",""""entityId"""":""""{entityId}"""",""""identifier"""":""""{serieCode}"""",""""layer"""":""""business"""", """"message"""":""""{eventMessage}"""",""""version"""":1}}";
 
                             await eventStoreStream.WriteLineAsync($@"{Guid.NewGuid()},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},migrationtool@omnia,{entityId},{serieClassifier},{serieCode},false,1,""{eventData}"",""{_eventMetadata}"",{eventMessage},{_correlationId}");
-                            await entityStream.WriteLineAsync($"{serieCode},1,\"{data}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")}");
+                            await entityStream.WriteLineAsync($"{serieCode},1,\"{data}\",{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{DateTime.UtcNow.ToString("yyyy-MM-dd hh:mm:ss.ff")},{targetDataObject._startingNumber}");
                         }
                     }
                 }
@@ -66,8 +68,7 @@ namespace OmniaMigrationTool
         private static async Task<IList<Numerator>> ProcessAsync(Guid sourceTenant, SqlConnection conn)
         {
             var result = new List<Numerator>();
-            using (var command = new SqlCommand(
-                Queries.SourceQueries.NumeratorsQuery(sourceTenant), conn))
+            using (var command = new SqlCommand(Queries.SourceQueries.NumeratorsQuery(sourceTenant), conn))
             {
                 try
                 {
@@ -100,10 +101,12 @@ namespace OmniaMigrationTool
         private class Numerator
         {
             public string TypeCode { get; set; }
+
             public string CompanyCode { get; set; }
+
             public string ShortCode { get; set; }
+
             public long LastUsedValue { get; set; }
         }
-
     }
 }
