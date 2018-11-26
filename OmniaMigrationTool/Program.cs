@@ -4,6 +4,8 @@ using System.Globalization;
 using OmniaMigrationTool.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using System.IO;
+using System.Collections.Generic;
 
 namespace OmniaMigrationTool
 {
@@ -25,12 +27,14 @@ namespace OmniaMigrationTool
                 command.Description = "Export data from source system.";
 
                 var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
+                var mappingOption = command.Option("--m", "Export maping", CommandOptionType.SingleValue);
                 var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
-                    var seriesProcessor = new SeriesProcessor(_jsonSettings, _correlationId, _eventMetadata);
-                    var service = new ExportService(tenantOption.Value(), connectionStringOption.Value(), _correlationId, _eventMetadata, seriesProcessor, _jsonSettings);
+                    var mappings = JsonConvert.DeserializeObject<List<EntityMapDefinition>>(File.ReadAllText(mappingOption.Value()));
+                    var seriesProcessor = new SeriesProcessor(mappings, _jsonSettings, _correlationId, _eventMetadata);
+                    var service = new ExportService(tenantOption.Value(), connectionStringOption.Value(), _correlationId, _eventMetadata, mappings, seriesProcessor, _jsonSettings);
                     service.Export().GetAwaiter().GetResult();
                     Console.ReadKey();
                     return 0;

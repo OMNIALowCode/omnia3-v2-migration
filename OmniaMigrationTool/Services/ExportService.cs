@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Omnia.Libraries.GenericExtensions;
 using System;
 using System.Collections.Generic;
@@ -20,12 +19,14 @@ namespace OmniaMigrationTool.Services
         private readonly string _connectionString;
         private readonly string _correlationId;
         private readonly string _eventMetadata;
+        private readonly IList<EntityMapDefinition> _definitions;
         private readonly SeriesProcessor _seriesProcessor;
         private readonly JsonSerializerSettings _jsonSettings;
 
-        public ExportService(string tenant, string connectionString, string correlationId, string eventMetadata, SeriesProcessor seriesProcessor, JsonSerializerSettings jsonSettings)
+        public ExportService(string tenant, string connectionString, string correlationId, string eventMetadata, IList<EntityMapDefinition> definitions, SeriesProcessor seriesProcessor, JsonSerializerSettings jsonSettings)
         {
             _sourceTenant = Guid.Parse(tenant);
+            _definitions = definitions;
             _connectionString = connectionString;
             _correlationId = correlationId;
             _eventMetadata = eventMetadata;
@@ -37,294 +38,11 @@ namespace OmniaMigrationTool.Services
         {
             var tempDir = new TempDirectory();
 
-            // CREDIT CARD
-            // --------------------------------------------
-            var creditCardAttributes = new List<EntityMapDefinition.AttributeMap>
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Code", "_name"),
-                new EntityMapDefinition.AttributeMap("Company", "Company"),
-                new EntityMapDefinition.AttributeMap("Employee", "Employee"),
-                new EntityMapDefinition.AttributeMap("CardAccount", "Account"),
-                new EntityMapDefinition.AttributeMap("Primavera", "Primavera")
-            };
-
-            var creditCardDefinition = new EntityMapDefinition("UserDefinedEntity", "CreditCard",
-                "GenericEntity", "CreditCard", creditCardAttributes);
-
-            // LOCATION
-            // --------------------------------------------
-            var locationAttributes = new List<EntityMapDefinition.AttributeMap>
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Code", "_name"),
-                new EntityMapDefinition.AttributeMap("Location_Company", "CompanyConfiguration")
-            };
-
-            var locationDefinition = new EntityMapDefinition("UserDefinedEntity", "Location",
-                "GenericEntity", "Location", locationAttributes);
-
-            // EXPENSE ITEM
-            // ---------------------------------------------
-            var expenseCompanyConfigAttributes = new List<EntityMapDefinition.AttributeMap>
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Code", "_name"),
-                new EntityMapDefinition.AttributeMap("ERPExpenseCode", "TreasuryItem"),
-                new EntityMapDefinition.AttributeMap("CompanyCode", "Company"),
-                //new EntityMapDefinition.AttributeMap("TreasuryHeading", ""),
-                new EntityMapDefinition.AttributeMap("ERPGeneralAccount", "FinancialAccount"),
-                new EntityMapDefinition.AttributeMap("ERPAnalytics", "AnalyticAccount"),
-                new EntityMapDefinition.AttributeMap("IntegratesAbsence", "IntegratesAbsence", targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
-                new EntityMapDefinition.AttributeMap("IntegratesMonthlyChange", "IntegratesRemuneration", targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
-                new EntityMapDefinition.AttributeMap("MonthlyChangeCode", "RemunerationType"),
-                new EntityMapDefinition.AttributeMap("AbsenseCode", "AbsenceType"),
-                new EntityMapDefinition.AttributeMap("BankMovementType", "BankDocument"),
-                //new EntityMapDefinition.AttributeMap("Supplier", ""),
-                new EntityMapDefinition.AttributeMap("Primavera", "Primavera")
-            };
-
-            var expenseLocationConfigAttributes = new List<EntityMapDefinition.AttributeMap>
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Code", "_name"),
-                new EntityMapDefinition.AttributeMap("CompanyCode", "Company"),
-                new EntityMapDefinition.AttributeMap("Location", "Location"),
-                new EntityMapDefinition.AttributeMap("ERPVAT", "VAT"),
-                new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
-            };
-
-            var expenseCompanyConfigDefinition = new EntityMapDefinition("MisEntityItem", "ExpenseItemERPConfig",
-                "GenericEntity", "ExpenseCompanyConfig", expenseCompanyConfigAttributes);
-
-            var expenseLocationConfigDefinition = new EntityMapDefinition("MisEntityItem", "ExpenseItemVATConfig",
-                "GenericEntity", "ExpenseLocationConfig", expenseLocationConfigAttributes);
-
-            var expenseItemDefinition = new EntityMapDefinition("Resource", "ExpenseItem",
-                "Resource", "ExpenseItem",
-                "Primavera"
-                    .Split(",")
-                    .Select(c => new EntityMapDefinition.AttributeMap(c, c)).ToList(),
-                new List<EntityMapDefinition>()
-                {
-                    expenseCompanyConfigDefinition,
-                    expenseLocationConfigDefinition
-                });
-
-            expenseItemDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
-            expenseItemDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_name"));
-
-            //expenseItemDefinition
-            //                .Attributes.Add(new EntityMapDefinition.AttributeMap("Type",));
-            //expenseItemDefinition
-            //                .Attributes.Add(new EntityMapDefinition.AttributeMap("TipMessage",));
-            expenseItemDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("HasKmsMatrix", "EmployeeCarExpense",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
-            //expenseItemDefinition
-            //    .Attributes.Add(new EntityMapDefinition.AttributeMap("LimitPerItem",));
-            expenseItemDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("IsCompanyCarType", "CompanyCarExpense",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
-
-            // EMPLOYEE
-            // ---------------------------------------------
-            var employeeErpConfigDefinition = new EntityMapDefinition("MisEntityItem", "EmployeeERPConfig",
-                "GenericEntity", "EmployeeERPConfiguration",
-                "ERPCode,Vehicle,Department,DepartmentDescription,Job,JobDescription,Manager,Primavera,ExpensesManager".Split(",")
-                    .Select(c => new EntityMapDefinition.AttributeMap(c, c)).ToList());
-
-            employeeErpConfigDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
-            employeeErpConfigDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_name"));
-            employeeErpConfigDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("ERPCostCenter", "CostCenter"));
-            employeeErpConfigDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("CompanyCode", "company"));
-
-            var employeeDefinition = new EntityMapDefinition("Agent", "Employee",
-                "Agent", "Employee",
-                "Primavera"
-                    .Split(",")
-                    .Select(c => new EntityMapDefinition.AttributeMap(c, c)).ToList(),
-                new List<EntityMapDefinition>()
-                {
-                    employeeErpConfigDefinition
-                });
-
-            employeeDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("Code", "_code"));
-            employeeDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("Name", "_name"));
-            employeeDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("Company", "defaultCompany"));
-
-            employeeDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("OutOfOffice", "outOfOffice",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
-
-            employeeDefinition
-                .Attributes.Add(new EntityMapDefinition.AttributeMap("UsesPreviousYearHolidays", "usesPreviousYearHolidays",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean));
-
-            // COMPANY
-            // ---------------------------------------------
-
-            var companyAttributes = new List<EntityMapDefinition.AttributeMap>()
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Name", "_name"),
-                new EntityMapDefinition.AttributeMap("BaseCurrency", "Currency"),
-                //new EntityMapDefinition.AttributeMap("ExpenseReportApprover", ""),
-                //new EntityMapDefinition.AttributeMap("CashAdvanceApprover", ""),
-                new EntityMapDefinition.AttributeMap("BaseLocation", "BaseLocation"),
-                //new EntityMapDefinition.AttributeMap("HRApprover", ""),
-                //new EntityMapDefinition.AttributeMap("NumberOfDays", ""),
-                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitDay", ""),
-                //new EntityMapDefinition.AttributeMap("PrevYearVacationsLimitMonth", ""),
-                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitDay", ""),
-                //new EntityMapDefinition.AttributeMap("SemesterContractVacationsLimitMonth", ""),
-                //new EntityMapDefinition.AttributeMap("CanSeeHolidaysCreate", ""),
-                //new EntityMapDefinition.AttributeMap("Market", ""),
-                //new EntityMapDefinition.AttributeMap("Primavera", ""),
-                //new EntityMapDefinition.AttributeMap("HolidayEvents", ""),
-                //new EntityMapDefinition.AttributeMap("OvertimeEvents", ""),
-                //new EntityMapDefinition.AttributeMap("AbsenceEvents", "")
-            };
-
-            var companyDefinition = new EntityMapDefinition("Agent", "myCompany",
-                "Agent", "Company",
-                companyAttributes);
-
-            // EXPENSE REPORT
-            // ---------------------------------------------
-
-            var expenseRefundRequestAttributes = new List<EntityMapDefinition.AttributeMap>()
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Amount", "_amount", EntityMapDefinition.AttributeMap.AttributeType.Decimal,EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                new EntityMapDefinition.AttributeMap("Quantity", "_quantity", EntityMapDefinition.AttributeMap.AttributeType.Decimal,EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                new EntityMapDefinition.AttributeMap("DateOccurred", "ExpenseDate", EntityMapDefinition.AttributeMap.AttributeType.Date,EntityMapDefinition.AttributeMap.AttributeType.Date),
-                new EntityMapDefinition.AttributeMap("ProviderAgentCode", "_provider"),
-                new EntityMapDefinition.AttributeMap("ReceiverAgentCode", "_receiver"),
-                new EntityMapDefinition.AttributeMap("ResourceCode", "_resource"),
-
-                //new EntityMapDefinition.AttributeMap("ResourceName"
-                new EntityMapDefinition.AttributeMap("ExpenseDetails","Details"),
-                //new EntityMapDefinition.AttributeMap("Description",""
-                //new EntityMapDefinition.AttributeMap("ResourceType
-                //new EntityMapDefinition.AttributeMap("FileUpload
-                new EntityMapDefinition.AttributeMap("LimitItem", "ItemLimit",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                //new EntityMapDefinition.AttributeMap("Incidence", ""
-                new EntityMapDefinition.AttributeMap("VatValue", "VATValue",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                new EntityMapDefinition.AttributeMap("ERPCostCenter","CostCenter"),
-                new EntityMapDefinition.AttributeMap("ERPGeneralAccount","GeneralAccount"),
-                //new EntityMapDefinition.AttributeMap("ERPAnalytics
-                new EntityMapDefinition.AttributeMap("VATPercentage","VATTax",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                new EntityMapDefinition.AttributeMap("ExpenseAmount","AmountExpenseCurrency",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                new EntityMapDefinition.AttributeMap("LicensePlate","CompanyVehicle"),
-                new EntityMapDefinition.AttributeMap("DeslocationPurpose","DeslocationPurpose"),
-                new EntityMapDefinition.AttributeMap("DeslocationDistance","DeslocationDistance",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                //new EntityMapDefinition.AttributeMap("Deslocation","")
-                new EntityMapDefinition.AttributeMap("UnitValue","UnitValue"),
-                new EntityMapDefinition.AttributeMap("EmployeeVehicle","OtherVehicle"),
-                //new EntityMapDefinition.AttributeMap("IsFoodAllowanceType
-                new EntityMapDefinition.AttributeMap("IsOwnCarType","IsOwnCarExpense",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
-                //new EntityMapDefinition.AttributeMap("IsSubsistenceAllowanceType
-                new EntityMapDefinition.AttributeMap("ERPVAT", "VAT"),
-                //new EntityMapDefinition.AttributeMap("Vehicle2
-                //new EntityMapDefinition.AttributeMap("Vehicle
-                //new EntityMapDefinition.AttributeMap("ExpenseSupplier
-                new EntityMapDefinition.AttributeMap("IsCompanyCarType","IsCompanyCarExpense",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal)
-            };
-
-            var expenseRefundRequestDefinition = new EntityMapDefinition("Commitment", "ExpenseRefundRequest",
-                "Commitment", "ExpenseLines",
-                expenseRefundRequestAttributes);
-
-            var expenseReportAttributes = new List<EntityMapDefinition.AttributeMap>()
-            {
-                new EntityMapDefinition.AttributeMap("Code", "_code"),
-                new EntityMapDefinition.AttributeMap("Number", "_number", EntityMapDefinition.AttributeMap.AttributeType.Long, EntityMapDefinition.AttributeMap.AttributeType.Int),
-                new EntityMapDefinition.AttributeMap("NumberSerieCode", "_serie"),
-                new EntityMapDefinition.AttributeMap("CompanyCode", "company"),
-                new EntityMapDefinition.AttributeMap("ApprovalStageCode", "ApprovalStage",
-                    valueMapping: new List<EntityMapDefinition.AttributeMap.AttributeValueMap>()
-                    {
-                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_Pending", "Draft"),
-                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_ProjectApprove", "ProjectApprove"),
-                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_ManagerApprove", "ManagerApprove"),
-                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_FinanceApprove", "FinanceApprove"),
-                        new EntityMapDefinition.AttributeMap.AttributeValueMap("ExpenseReport_Completed", "Completed")
-                    }),
-
-                new EntityMapDefinition.AttributeMap("Employee", "Employee"),
-                new EntityMapDefinition.AttributeMap("ApproveBy", "Approver"),
-                new EntityMapDefinition.AttributeMap("Amount", "Amount",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                //new EntityMapDefinition.AttributeMap("FileUpload // TODO
-                new EntityMapDefinition.AttributeMap("ExpenseProject", "Project"),
-                new EntityMapDefinition.AttributeMap("DueDate", "_date",EntityMapDefinition.AttributeMap.AttributeType.Text, EntityMapDefinition.AttributeMap.AttributeType.Date),
-                //new EntityMapDefinition.AttributeMap("ApprovalDefinedEmployee
-                //new EntityMapDefinition.AttributeMap("VacationEmployeeRepl
-                new EntityMapDefinition.AttributeMap("ERPDocumentIdentifier","ERPTreasuryDocumentId"),
-                new EntityMapDefinition.AttributeMap("ExpenseDetails", "ExpenseDetails"),
-                new EntityMapDefinition.AttributeMap("Location","Location"),
-                new EntityMapDefinition.AttributeMap("ExpenseCurrency","Currency"),
-                new EntityMapDefinition.AttributeMap("Rate","Rate",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Decimal),
-                new EntityMapDefinition.AttributeMap("DocumentDate","DocumentDate",
-                targetType: EntityMapDefinition.AttributeMap.AttributeType.Date),
-                //new EntityMapDefinition.AttributeMap("ChargeThirdParty
-                //new EntityMapDefinition.AttributeMap("ChargeThirdPartyNotes
-                //new EntityMapDefinition.AttributeMap("CompanyBaseCurrency
-                new EntityMapDefinition.AttributeMap("CreditCard","CreditCard"),
-                //new EntityMapDefinition.AttributeMap("VatAmount
-                //new EntityMapDefinition.AttributeMap("DefaultCreditCard
-                //new EntityMapDefinition.AttributeMap("ERPSimpleIdentifier // TODO: Lidar com multiplicidade //ERPIntegrations
-                //new EntityMapDefinition.AttributeMap("ERPOtherDoc // TODO: Lidar com multiplicidade //ERPIntegrations
-                //new EntityMapDefinition.AttributeMap("IsInvertedRateCalc
-                //new EntityMapDefinition.AttributeMap("DefaultVehicle
-                //new EntityMapDefinition.AttributeMap("Department
-                new EntityMapDefinition.AttributeMap("UseCreditCard","UseCreditCard",
-                    targetType: EntityMapDefinition.AttributeMap.AttributeType.Boolean),
-                //new EntityMapDefinition.AttributeMap("EmployeeERPCode"
-                new EntityMapDefinition.AttributeMap("Primavera", "Primavera"),
-                //new EntityMapDefinition.AttributeMap("TeamApprover
-                //new EntityMapDefinition.AttributeMap("DepartmentsWithAccess
-            };
-
-            var expenseReportDefinition = new EntityMapDefinition("Interaction", "ExpenseReport",
-                "Document", "ExpenseReport",
-                expenseReportAttributes,
-                commitments: new List<EntityMapDefinition>
-                {
-                    expenseRefundRequestDefinition
-                });
-
             Console.WriteLine($"Writing to folder: {tempDir.Path}");
 
             stopwatch.Start();
 
-            await Process(tempDir.Path, _sourceTenant, new List<EntityMapDefinition>
-            {
-                employeeDefinition,
-                companyDefinition,
-                expenseReportDefinition,
-                expenseItemDefinition,
-                locationDefinition,
-                //creditCardDefinition,
-            });
+            await Process(tempDir.Path, _sourceTenant, _definitions);
 
             stopwatch.Stop();
 
