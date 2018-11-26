@@ -122,17 +122,24 @@ namespace OmniaMigrationTool.Services
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
             var commitmentDictionary = new Dictionary<string, List<ItemProcessed>>();
+            var eventDictionary = new Dictionary<string, List<ItemProcessed>>();
+            var cardinalityDictionary = new Dictionary<long, Dictionary<string, List<string>>>();
 
             foreach (var item in definition.Items)
                 itemDictionary.Add(item.SourceCode, await GetItems(sourceTenant, conn, item));
 
             foreach (var item in definition.Commitments)
-                commitmentDictionary.Add(item.SourceCode, await GetCommitments(sourceTenant, conn, item));
+                commitmentDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
+
+            foreach (var item in definition.Events)
+                eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
+
+            cardinalityDictionary = await GetAttributesWithCardinalityN(definition.SourceCode, conn);
 
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(sourceTenant,
                     definition.SourceKind,
-                    definition.Attributes.Select(c => c.Source).ToArray()), conn))
+                    definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()), conn))
             {
                 command.Parameters.Add(new SqlParameter("@code", definition.SourceCode));
                 try
@@ -147,7 +154,12 @@ namespace OmniaMigrationTool.Services
                             var mapping = new Dictionary<string, object>();
 
                             foreach (var attribute in definition.Attributes)
-                                MapAttribute(mapping, reader, attribute);
+                            {
+                                if (attribute.SourceCardinality == "1")
+                                    MapAttribute(mapping, reader, attribute);
+                                else
+                                    mapping[attribute.Target] = cardinalityDictionary[sourceEntityId][attribute.Source];
+                            }
 
                             foreach (var item in definition.Items)
                             {
@@ -160,6 +172,15 @@ namespace OmniaMigrationTool.Services
                                 mapping[item.TargetCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
+
+                            foreach (var item in definition.Events)
+                            {
+                                mapping[item.TargetCode] = eventDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                    .Select(i => i.Data);
+                            }
+                            // Rewrite series in case of documents
+                            if (definition.TargetKind.EqualsIgnoringCase("Document"))
+                                mapping["_serie"] = $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{mapping["_serie"]}";
 
                             result.Add(mapping);
                         }
@@ -180,7 +201,7 @@ namespace OmniaMigrationTool.Services
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(sourceTenant,
                     definition.SourceKind,
-                    definition.Attributes.Select(c => c.Source).ToArray()
+                    definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()
                         ), conn))
             {
                 command.Parameters.Add(new SqlParameter("@code",
@@ -207,13 +228,13 @@ namespace OmniaMigrationTool.Services
             return result;
         }
 
-        private async Task<List<ItemProcessed>> GetCommitments(Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
+        private async Task<List<ItemProcessed>> GetTransactionalEntity(Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
                 Queries.SourceQueries.TransactionalEntityQuery(sourceTenant,
                     definition.SourceKind,
-                    definition.Attributes.Select(c => c.Source).ToArray()
+                    definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()
                 ), conn))
             {
                 command.Parameters.Add(new SqlParameter("@code",
@@ -233,6 +254,45 @@ namespace OmniaMigrationTool.Services
 
                         var parentId = reader.GetInt64(reader.GetOrdinal("InteractionID"));
                         result.Add(new ItemProcessed(parentId, mapping));
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<Dictionary<long, Dictionary<string, List<string>>>> GetAttributesWithCardinalityN(string sourceCode, SqlConnection conn)
+        {
+            var result = new Dictionary<long, Dictionary<string, List<string>>>();
+            using (var command = new SqlCommand(
+                Queries.SourceQueries.CardinalityQuery(_sourceTenant), conn))
+            {
+                command.Parameters.Add(new SqlParameter("@code",
+                    sourceCode
+                ));
+
+                command.CommandTimeout = 360;
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var parentId = reader.GetInt64(reader.GetOrdinal("MisEntityID"));
+                        var name = reader.GetString(reader.GetOrdinal("Name"));
+                        var code = reader.GetString(reader.GetOrdinal("Code"));
+                        if (result.ContainsKey(parentId))
+                        {
+                            var entity = result[parentId];
+                            if (entity.ContainsKey(name))
+                                entity[name].Add(code);
+                            else
+                                entity[name] = new List<string> { code };
+                        }
+                        else
+                            result.Add(parentId, new Dictionary<string, List<string>>
+                            {
+                                { name, new List<string> { code } }
+                            });
                     }
                 }
             }
