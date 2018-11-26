@@ -49,6 +49,7 @@ namespace OmniaMigrationTool.Services
                             {
                                 _code = serieCode,
                                 _name = serieCode,
+                                _description = "Serie imported using Omnia Migration Tool",
                                 _inactive = true, //Because the series from data imported shouldn't be used
                                 _startingNumber = mapping.LastUsedValue
                             };
