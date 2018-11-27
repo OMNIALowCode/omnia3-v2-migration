@@ -42,14 +42,14 @@ namespace OmniaMigrationTool.Services
 
             stopwatch.Start();
 
-            await Process(tempDir.Path, _sourceTenant, _definitions);
+            await Process(tempDir.Path);
 
             stopwatch.Stop();
 
             Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
         }
 
-        private async Task Process(string outputPath, Guid sourceTenant, IList<EntityMapDefinition> definitions)
+        private async Task Process(string outputPath)
         {
             // using (var conn = new SqlConnection("Data Source=sqlsrvmymis66ey4j7eutvtc.database.windows.net;Initial Catalog=sqldbmymis66ey4j7eutvtc;user id=MyMisMaster;password=4FXsJMDlp5JWHIzk;MultipleActiveResultSets=True;Connection Timeout=60"))
             using (var conn = new SqlConnection(_connectionString))
@@ -63,20 +63,20 @@ namespace OmniaMigrationTool.Services
                         await sw.WriteLineAsync("id,created_at,created_by,entity_id,definition_identifier,identifier,is_removed,version,event,metadata,message,correlation_id");
 
                         // Process Series
-                        await _seriesProcessor.ProcessAsync(outputPath, sourceTenant, conn, sw);
+                        await _seriesProcessor.ProcessAsync(outputPath, conn, sw);
 
                         // Process Entities
-                        var group = definitions.GroupBy(g => g.TargetCode);
+                        var group = _definitions.GroupBy(g => g.TargetCode);
                         foreach (var item in group)
                         {
-                            await ProcessEntity(outputPath, sourceTenant, conn, item.AsEnumerable(), sw);
+                            await ProcessEntity(outputPath, conn, item.AsEnumerable(), sw);
                         }
                     }
                 }
             }
         }
 
-        private async Task ProcessEntity(string outputPath, Guid sourceTenant, SqlConnection conn, IEnumerable<EntityMapDefinition> definitions, StreamWriter eventStoreStream)
+        private async Task ProcessEntity(string outputPath, SqlConnection conn, IEnumerable<EntityMapDefinition> definitions, StreamWriter eventStoreStream)
         {
             var mappingCollection = new List<Dictionary<string, object>>();
 
@@ -84,7 +84,7 @@ namespace OmniaMigrationTool.Services
 
             foreach (var definition in definitions)
             {
-                var mappingResult = await MapEntity(sourceTenant, conn, definition);
+                var mappingResult = await MapEntity(conn, definition);
 
                 foreach (var result in mappingResult)
                 {
@@ -117,7 +117,7 @@ namespace OmniaMigrationTool.Services
             }
         }
 
-        private async Task<IList<Dictionary<string, object>>> MapEntity(Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
+        private async Task<IList<Dictionary<string, object>>> MapEntity(SqlConnection conn, EntityMapDefinition definition)
         {
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
@@ -126,18 +126,18 @@ namespace OmniaMigrationTool.Services
             var cardinalityDictionary = new Dictionary<long, Dictionary<string, List<string>>>();
 
             foreach (var item in definition.Items)
-                itemDictionary.Add(item.SourceCode, await GetItems(sourceTenant, conn, item));
+                itemDictionary.Add(item.SourceCode, await GetItems(conn, item));
 
             foreach (var item in definition.Commitments)
-                commitmentDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
+                commitmentDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item));
 
             foreach (var item in definition.Events)
-                eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(sourceTenant, conn, item));
+                eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item));
 
             cardinalityDictionary = await GetAttributesWithCardinalityN(definition.SourceCode, conn);
 
             using (var command = new SqlCommand(
-                Queries.SourceQueries.EntityQuery(sourceTenant,
+                Queries.SourceQueries.EntityQuery(_sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()), conn))
             {
@@ -192,14 +192,15 @@ namespace OmniaMigrationTool.Services
                     Console.WriteLine(ex.Message);
                 }
             }
+
             return result;
         }
 
-        private async Task<List<ItemProcessed>> GetItems(Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
+        private async Task<List<ItemProcessed>> GetItems(SqlConnection conn, EntityMapDefinition definition)
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
-                Queries.SourceQueries.EntityQuery(sourceTenant,
+                Queries.SourceQueries.EntityQuery(_sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()
                         ), conn))
@@ -228,11 +229,11 @@ namespace OmniaMigrationTool.Services
             return result;
         }
 
-        private async Task<List<ItemProcessed>> GetTransactionalEntity(Guid sourceTenant, SqlConnection conn, EntityMapDefinition definition)
+        private async Task<List<ItemProcessed>> GetTransactionalEntity(SqlConnection conn, EntityMapDefinition definition)
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
-                Queries.SourceQueries.TransactionalEntityQuery(sourceTenant,
+                Queries.SourceQueries.TransactionalEntityQuery(_sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()
                 ), conn))

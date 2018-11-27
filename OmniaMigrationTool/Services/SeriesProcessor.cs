@@ -12,21 +12,23 @@ namespace OmniaMigrationTool.Services
     internal class SeriesProcessor
     {
         private readonly IList<EntityMapDefinition> _definitions;
+        private readonly Guid _sourceTenant;
         private readonly JsonSerializerSettings _jsonSettings;
         private readonly string _correlationId;
         private readonly string _eventMetadata;
 
-        public SeriesProcessor(IList<EntityMapDefinition> definitions, JsonSerializerSettings jsonSettings, string correlationId, string eventMetadata)
+        public SeriesProcessor(IList<EntityMapDefinition> definitions, string sourceTenant, JsonSerializerSettings jsonSettings, string correlationId, string eventMetadata)
         {
             _definitions = definitions;
+            _sourceTenant = Guid.Parse(sourceTenant);
             _jsonSettings = jsonSettings;
             _correlationId = correlationId;
             _eventMetadata = eventMetadata;
         }
 
-        public async Task ProcessAsync(string outputPath, Guid sourceTenant, SqlConnection conn, StreamWriter eventStoreStream)
+        public async Task ProcessAsync(string outputPath, SqlConnection conn, StreamWriter eventStoreStream)
         {
-            var series = await ProcessAsync(sourceTenant, conn);
+            var series = await ProcessAsync(conn);
 
             var groupedSeries = series.Where(num => _definitions.Any(d => d.TargetCode == num.TypeCode)).GroupBy(g => g.TypeCode);
 
@@ -66,10 +68,10 @@ namespace OmniaMigrationTool.Services
             }
         }
 
-        private static async Task<IList<Numerator>> ProcessAsync(Guid sourceTenant, SqlConnection conn)
+        private async Task<IList<Numerator>> ProcessAsync(SqlConnection conn)
         {
             var result = new List<Numerator>();
-            using (var command = new SqlCommand(Queries.SourceQueries.NumeratorsQuery(sourceTenant), conn))
+            using (var command = new SqlCommand(Queries.SourceQueries.NumeratorsQuery(_sourceTenant), conn))
             {
                 try
                 {
