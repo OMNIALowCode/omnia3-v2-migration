@@ -54,6 +54,8 @@ namespace OmniaMigrationTool.Queries
         INNER JOIN [{0}].UIElements ue on mt.ID = ue.MisEntityTypeID
         LEFT JOIN [{0}].AttributeKeys ak ON ue.AttributeKeyID = ak.ID
         LEFT JOIN [{0}].RelationalRules rr ON rr.PKID = ak.ID
+        INNER JOIN  [{0}].UIElementsInViews uev on ue.ID = uev.UIElementID
+        INNER JOIN  [{0}].Views vw on vw.ID = uev.ViewID AND vw.[Default] = 1
         WHERE et.ID IS NULL AND LEFT(ue.DataType, 2) <> 'BT' AND LEFT(ue.DataType, 2) <> 'WC'";
 
         private const string ItemsQueryTemplate = @"SELECT mt.CODE 'TypeCode', mit.Code 'ItemTypeCode'
