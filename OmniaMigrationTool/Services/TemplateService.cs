@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using OmniaMigrationTool.Extensions;
 using OmniaMigrationTool.Queries;
 using System;
 using System.Collections.Generic;
@@ -85,22 +86,13 @@ namespace OmniaMigrationTool.Services
             }
 
             foreach (var item in items)
-            {
-                definitions[item.Item1].Items.Add(definitions[item.Item2]);
-                definitions.Remove(item.Item2);
-            }
+                definitions.MoveTo(item.Item1, item.Item2);
 
             foreach (var commitment in commitments)
-            {
-                definitions[commitment.Item1].Items.Add(definitions[commitment.Item2]);
-                definitions.Remove(commitment.Item2);
-            }
+                definitions.MoveTo(commitment.Item1, commitment.Item2);
 
             foreach (var evt in events)
-            {
-                definitions[evt.Item1].Items.Add(definitions[evt.Item2]);
-                definitions.Remove(evt.Item2);
-            }
+                definitions.MoveTo(evt.Item1, evt.Item2);
 
             await File.WriteAllTextAsync(Path.Combine(tempDir.Path, $"{_sourceTenant}_mapping.json"), JsonConvert.SerializeObject(definitions.Values, new JsonSerializerSettings
             {
