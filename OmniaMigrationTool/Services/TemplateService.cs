@@ -12,11 +12,9 @@ namespace OmniaMigrationTool.Services
 {
     internal class TemplateService
     {
-        private static readonly string ItemsType = "MisEntityItem";
-
         private static readonly Dictionary<string, string> v2KindMapper = new Dictionary<string, string>
         {
-            { ItemsType, "GenericEntity" },
+            { "Item", "GenericEntity" },
             { "UserDefinedEntity", "GenericEntity" },
             { "Resource", "Resource" },
             { "Interaction", "Document" },
@@ -66,12 +64,42 @@ namespace OmniaMigrationTool.Services
 
             var definitions = new Dictionary<string, EntityMapDefinition>();
 
+            List<(string, string)> items = null;
+            List<(string, string)> commitments = null;
+            List<(string, string)> events = null;
+
             using (var conn = new SqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
 
                 await GetEntities(definitions, conn);
                 await GetEntityAttributes(definitions, conn);
+
+                var itemsTask = GetItems(conn);
+                var commitmentsTask = GetCommitments(conn);
+                var eventsTask = GetEvents(conn);
+
+                items = await itemsTask;
+                commitments = await commitmentsTask;
+                events = await eventsTask;
+            }
+
+            foreach (var item in items)
+            {
+                definitions[item.Item1].Items.Add(definitions[item.Item2]);
+                definitions.Remove(item.Item2);
+            }
+
+            foreach (var commitment in commitments)
+            {
+                definitions[commitment.Item1].Items.Add(definitions[commitment.Item2]);
+                definitions.Remove(commitment.Item2);
+            }
+
+            foreach (var evt in events)
+            {
+                definitions[evt.Item1].Items.Add(definitions[evt.Item2]);
+                definitions.Remove(evt.Item2);
             }
 
             await File.WriteAllTextAsync(Path.Combine(tempDir.Path, $"{_sourceTenant}_mapping.json"), JsonConvert.SerializeObject(definitions.Values, new JsonSerializerSettings
@@ -151,6 +179,99 @@ namespace OmniaMigrationTool.Services
                     Console.WriteLine(ex.Message);
                 }
             }
+        }
+
+        private async Task<List<(string, string)>> GetItems(SqlConnection conn)
+        {
+            var result = new List<(string, string)>();
+
+            using (var command = new SqlCommand(TemplateQueries.ItemsQuery(_sourceTenant), conn))
+            {
+                try
+                {
+                    command.CommandTimeout = 360;
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            result.Add((
+                                reader.GetString(reader.GetOrdinal("TypeCode")),
+                                reader.GetString(reader.GetOrdinal("ItemTypeCode"))
+                                ));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.GetType().ToString());
+                    Console.WriteLine(ex.Message);
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<List<(string, string)>> GetCommitments(SqlConnection conn)
+        {
+            var result = new List<(string, string)>();
+
+            using (var command = new SqlCommand(TemplateQueries.CommitmentsQuery(_sourceTenant), conn))
+            {
+                try
+                {
+                    command.CommandTimeout = 360;
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            result.Add((
+                                reader.GetString(reader.GetOrdinal("TypeCode")),
+                                reader.GetString(reader.GetOrdinal("CommitmentTypeCode"))
+                                ));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.GetType().ToString());
+                    Console.WriteLine(ex.Message);
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<List<(string, string)>> GetEvents(SqlConnection conn)
+        {
+            var result = new List<(string, string)>();
+
+            using (var command = new SqlCommand(TemplateQueries.EventsQuery(_sourceTenant), conn))
+            {
+                try
+                {
+                    command.CommandTimeout = 360;
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            result.Add((
+                                reader.GetString(reader.GetOrdinal("TypeCode")),
+                                reader.GetString(reader.GetOrdinal("EventTypeCode"))
+                                ));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.GetType().ToString());
+                    Console.WriteLine(ex.Message);
+                }
+            }
+
+            return result;
         }
 
         private string TransformToV3Code(string name)
