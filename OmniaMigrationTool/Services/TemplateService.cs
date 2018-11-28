@@ -43,7 +43,7 @@ namespace OmniaMigrationTool.Services
         private static readonly Dictionary<string, string> _kindMapper
             = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "Item", "GenericEntity" },
+            { "MisEntityItem", "GenericEntity" },
             { "UserDefinedEntity", "GenericEntity" },
             { "Resource", "Resource" },
             { "Interaction", "Document" },
@@ -185,14 +185,14 @@ namespace OmniaMigrationTool.Services
 
                             var typeCode = reader.GetString(reader.GetOrdinal("TypeCode"));
                             var dataType = reader.GetString(reader.GetOrdinal("DataType")).Substring(0, 2);
-
+                            var isSourceBaseType = reader.GetBoolean(reader.GetOrdinal("Base"));
                             var cardinalityPos = reader.GetOrdinal("Cardinality");
 
                             if (definitions.ContainsKey(typeCode))
                                 definitions[typeCode].Attributes.Add(new AttributeMap(
                                     code,
                                     _codeMapper.GetValueOrDefault(code, code),
-                                    _sourceTypeMapper[dataType],
+                                    (isSourceBaseType ? _sourceTypeMapper[dataType] : AttributeMap.AttributeType.Text),
                                     _targetTypeMapper[dataType],
                                     sourceCardinality: reader.IsDBNull(cardinalityPos) ? null : reader.GetString(cardinalityPos)
                                     ));
