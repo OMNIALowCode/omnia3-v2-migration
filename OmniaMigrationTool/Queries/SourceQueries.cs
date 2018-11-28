@@ -65,14 +65,23 @@ namespace OmniaMigrationTool.Queries
         ) AS eav ON eav.MisEntityID = me.ID
         WHERE t.Code = @code;";
 
-        private const string NumeratorsQueryTemplate = @"SELECT mt.Code 'TypeCode', comp.Code 'CompanyCode', 
+        private const string NumeratorsQueryTemplate = @"SELECT mt.Code 'TypeCode', comp.Code 'CompanyCode',
         num.ShortCode,
         num.LastUsedValue
     FROM [{0}].Numerators num
-    INNER JOIN [{0}].MisEntityTypes mt 
+    INNER JOIN [{0}].MisEntityTypes mt
         ON num.MisEntityTypeID = mt.ID
-    INNER JOIN [{0}].MisEntities comp 
+    INNER JOIN [{0}].MisEntities comp
         ON num.CompanyID = comp.ID;";
+
+        private const string CardinalityQueryTemplate = @"SELECT ak.Name, av.MisEntityID, foreignme.[Code]
+        FROM [{0}].RelationalRules rr
+        INNER JOIN [{0}].RelationalRuleInstances rri on rr.ID = rri.RelationalRuleID
+        INNER JOIN [{0}].AttributeKeys ak ON rr.PKID = ak.ID
+        INNER JOIN [{0}].MisEntityTypes t ON ak.MisEntityTypeID = t.ID
+        INNER JOIN [{0}].[MisEntities] foreignme on rri.FKID = foreignme.ID
+        INNER JOIN [{0}].vwAttributeValues av ON ak.ID = av.AttributeKeyID AND av.ID = rri.PKID
+        WHERE Cardinality <> '1' AND t.Code = @code;";
 
         public static string EntityQuery(Guid tenant, string kind, string[] customAttributes)
         {
@@ -97,7 +106,7 @@ namespace OmniaMigrationTool.Queries
                     $"LEFT JOIN [{tenant}].ApprovalStages aps on a.ApprovalStageID = aps.ID ";
                 customSelect +=
                     ", aps.Code 'ApprovalStageCode' ";
-                
+
                 attributesFromEav = attributesFromEav.Where(c => !c.Equals("ApprovalStageCode")).ToArray();
             }
 
@@ -112,5 +121,7 @@ namespace OmniaMigrationTool.Queries
         public static string NumeratorsQuery(Guid tenant)
             => string.Format(NumeratorsQueryTemplate, tenant);
 
+        public static string CardinalityQuery(Guid tenant)
+            => string.Format(CardinalityQueryTemplate, tenant);
     }
 }

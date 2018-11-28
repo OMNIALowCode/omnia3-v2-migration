@@ -11,7 +11,6 @@ namespace OmniaMigrationTool
 {
     internal class Program
     {
-        private static JsonSerializerSettings _jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
         private static string _correlationId = Guid.NewGuid().ToString("N");
         private static string _eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
 
@@ -21,6 +20,22 @@ namespace OmniaMigrationTool
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
             var app = new CommandLineApplication();
+
+            app.Command("template", (command) =>
+            {
+                command.Description = "Create mapping file template";
+
+                var tenantOption = command.Option("--t", "Export template tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("--c", "Export template connection string", CommandOptionType.SingleValue);
+
+                command.OnExecute(() =>
+                {
+                    var service = new TemplateService(tenantOption.Value(), connectionStringOption.Value());
+                    service.GenerateTemplate().GetAwaiter().GetResult();
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
 
             app.Command("export", (command) =>
             {
@@ -32,9 +47,11 @@ namespace OmniaMigrationTool
 
                 command.OnExecute(() =>
                 {
-                    var mappings = JsonConvert.DeserializeObject<List<EntityMapDefinition>>(File.ReadAllText(mappingOption.Value()));
-                    var seriesProcessor = new SeriesProcessor(mappings, _jsonSettings, _correlationId, _eventMetadata);
-                    var service = new ExportService(tenantOption.Value(), connectionStringOption.Value(), _correlationId, _eventMetadata, mappings, seriesProcessor, _jsonSettings);
+                    var tenant = tenantOption.Value();
+                    var jsonSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+                    var mappings = JsonConvert.DeserializeObject<List<EntityMapDefinition>>(File.ReadAllText(mappingOption.Value()), jsonSettings);
+                    var seriesProcessor = new SeriesProcessor(mappings, tenant, jsonSettings, _correlationId, _eventMetadata);
+                    var service = new ExportService(tenant, connectionStringOption.Value(), _correlationId, _eventMetadata, mappings, seriesProcessor, jsonSettings);
                     service.Export().GetAwaiter().GetResult();
                     Console.ReadKey();
                     return 0;

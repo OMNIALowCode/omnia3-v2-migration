@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -43,7 +45,8 @@ namespace OmniaMigrationTool
             public AttributeMap(string source, string target,
                 AttributeType sourceType = AttributeType.Text,
                 AttributeType targetType = AttributeType.Text,
-                IList<AttributeValueMap> valueMapping = null
+                IList<AttributeValueMap> valueMapping = null,
+                string sourceCardinality = "1"
                 )
             {
                 Source = source;
@@ -51,6 +54,7 @@ namespace OmniaMigrationTool
                 SourceType = sourceType;
                 TargetType = targetType;
                 ValueMapping = valueMapping;
+                SourceCardinality = sourceCardinality ?? "1";
             }
 
             public string Source { get; }
@@ -63,6 +67,9 @@ namespace OmniaMigrationTool
 
             public IList<AttributeValueMap> ValueMapping { get; }
 
+            public string SourceCardinality { get; }
+
+            [JsonConverter(typeof(StringEnumConverter))]
             public enum AttributeType
             {
                 Text,
