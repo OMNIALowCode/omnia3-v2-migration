@@ -295,22 +295,5 @@ namespace OmniaMigrationTool.Services
 
             return result;
         }
-
-        private string TransformToV3Code(string name)
-        {
-            if (name.Equals("Name", StringComparison.InvariantCulture))
-                return "_name";
-
-            if (name.Equals("Code", StringComparison.InvariantCulture))
-                return "_code";
-
-            if (name.Equals("Inactive", StringComparison.InvariantCulture))
-                return "_inactive";
-
-            if (name.Equals("Description", StringComparison.InvariantCulture))
-                return "_description";
-
-            return name;
-        }
     }
 }
