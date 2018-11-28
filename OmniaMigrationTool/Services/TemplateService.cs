@@ -13,7 +13,31 @@ namespace OmniaMigrationTool.Services
 {
     internal class TemplateService
     {
-        private static readonly Dictionary<string, string> v2KindMapper = new Dictionary<string, string>
+        private static readonly HashSet<string> _ignoreList = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ID",
+            "ExternalSystemCode",
+            "ExternalCode",
+            "ResponsibilityCenterDistributions",
+            "TransactionKind",
+        };
+
+        private static readonly Dictionary<string, string> _codeMapper
+            = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Name", "_name" },
+            { "Code", "_code" },
+            { "Inactive", "_inactive" },
+            { "Description", "_description" },
+            { "Amount", "_amount" },
+            { "Quantity", "_quantity" },
+            { "ProviderAgent", "_provider" },
+            { "ReceiverAgent", "_receiver" },
+            { "Resource", "_resource" },
+        };
+
+        private static readonly Dictionary<string, string> _kindMapper
+            = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "Item", "GenericEntity" },
             { "UserDefinedEntity", "GenericEntity" },
@@ -24,7 +48,8 @@ namespace OmniaMigrationTool.Services
             { "Agent", "Agent" },
         };
 
-        private static readonly Dictionary<string, AttributeMap.AttributeType> sourceTypeMapper = new Dictionary<string, AttributeMap.AttributeType>
+        private static readonly Dictionary<string, AttributeMap.AttributeType> _sourceTypeMapper
+            = new Dictionary<string, AttributeMap.AttributeType>(StringComparer.OrdinalIgnoreCase)
         {
             { "ST", AttributeMap.AttributeType.Text },
             { "BO", AttributeMap.AttributeType.Boolean },
@@ -36,7 +61,8 @@ namespace OmniaMigrationTool.Services
             { "BD", AttributeMap.AttributeType.Text },
         };
 
-        private static readonly Dictionary<string, AttributeMap.AttributeType> targetTypeMapper = new Dictionary<string, AttributeMap.AttributeType>
+        private static readonly Dictionary<string, AttributeMap.AttributeType> _targetTypeMapper
+            = new Dictionary<string, AttributeMap.AttributeType>(StringComparer.OrdinalIgnoreCase)
         {
             { "ST", AttributeMap.AttributeType.Text },
             { "BO", AttributeMap.AttributeType.Boolean },
@@ -63,7 +89,7 @@ namespace OmniaMigrationTool.Services
 
             Console.WriteLine($"Writing to folder: {tempDir.Path}");
 
-            var definitions = new Dictionary<string, EntityMapDefinition>();
+            var definitions = new Dictionary<string, EntityMapDefinition>(StringComparer.OrdinalIgnoreCase);
 
             List<(string, string)> items = null;
             List<(string, string)> commitments = null;
@@ -121,7 +147,7 @@ namespace OmniaMigrationTool.Services
                             definitions.Add(typeCode, new EntityMapDefinition(
                                 typeKind,
                                 typeCode,
-                                v2KindMapper[typeKind],
+                                _kindMapper[typeKind],
                                 typeCode,
                                 new List<AttributeMap>()
                                 ));
@@ -148,8 +174,12 @@ namespace OmniaMigrationTool.Services
                     {
                         while (await reader.ReadAsync())
                         {
-                            var typeCode = reader.GetString(reader.GetOrdinal("TypeCode"));
                             var code = reader.GetString(reader.GetOrdinal("Name"));
+
+                            if (_ignoreList.Contains(code))
+                                continue;
+
+                            var typeCode = reader.GetString(reader.GetOrdinal("TypeCode"));
                             var dataType = reader.GetString(reader.GetOrdinal("DataType")).Substring(0, 2);
 
                             var cardinalityPos = reader.GetOrdinal("Cardinality");
@@ -157,9 +187,9 @@ namespace OmniaMigrationTool.Services
                             if (definitions.ContainsKey(typeCode))
                                 definitions[typeCode].Attributes.Add(new AttributeMap(
                                     code,
-                                    this.TransformToV3Code(code),
-                                    sourceTypeMapper[dataType],
-                                    targetTypeMapper[dataType],
+                                    _codeMapper.GetValueOrDefault(code, code),
+                                    _sourceTypeMapper[dataType],
+                                    _targetTypeMapper[dataType],
                                     sourceCardinality: reader.IsDBNull(cardinalityPos) ? null : reader.GetString(cardinalityPos)
                                     ));
                         }
