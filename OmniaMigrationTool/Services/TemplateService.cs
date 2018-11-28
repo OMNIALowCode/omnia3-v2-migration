@@ -20,6 +20,7 @@ namespace OmniaMigrationTool.Services
             "ExternalCode",
             "ResponsibilityCenterDistributions",
             "TransactionKind",
+            "NumberSerieID",
         };
 
         private static readonly Dictionary<string, string> _codeMapper
@@ -34,6 +35,8 @@ namespace OmniaMigrationTool.Services
             { "ProviderAgent", "_provider" },
             { "ReceiverAgent", "_receiver" },
             { "Resource", "_resource" },
+            { "Number", "_number" },
+            { "NumberSerieCode", "_serie" },
         };
 
         private static readonly Dictionary<string, string> _kindMapper
