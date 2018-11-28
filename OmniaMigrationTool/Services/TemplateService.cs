@@ -37,6 +37,7 @@ namespace OmniaMigrationTool.Services
             { "Resource", "_resource" },
             { "Number", "_number" },
             { "NumberSerieCode", "_serie" },
+            { "DateCreated", "_date" },
         };
 
         private static readonly Dictionary<string, string> _kindMapper
