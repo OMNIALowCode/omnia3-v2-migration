@@ -2,9 +2,9 @@
 
 namespace OmniaMigrationTool.Extensions
 {
-    public static class DictionaryExtensions
+    internal static class DictionaryExtensions
     {
-        public static void MoveTo(this Dictionary<string, EntityMapDefinition> source, string parentKey, string childKey)
+        internal static void MoveTo(this Dictionary<string, EntityMapDefinition> source, string parentKey, string childKey)
         {
             source[parentKey].Items.Add(source[childKey]);
             source.Remove(childKey);
