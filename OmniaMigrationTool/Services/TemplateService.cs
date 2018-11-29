@@ -193,7 +193,7 @@ namespace OmniaMigrationTool.Services
                                 var attribute = new AttributeMap(
                                     code,
                                     _codeMapper.GetValueOrDefault(code, code),
-                                    (isSourceBaseType ? _sourceTypeMapper[dataType] : AttributeMap.AttributeType.Text),
+                                    MapSourceType(),
                                     _targetTypeMapper[dataType],
                                     sourceCardinality: reader.IsDBNull(cardinalityPos) ? null : reader.GetString(cardinalityPos)
                                     );
@@ -207,6 +207,14 @@ namespace OmniaMigrationTool.Services
                                 }
 
                                 definitions[typeCode].Attributes.Add(attribute);
+                            }
+
+                            AttributeMap.AttributeType MapSourceType()
+                            {
+                                if (code == "ApprovalStatus")
+                                    return AttributeMap.AttributeType.Int;
+
+                                return isSourceBaseType ? _sourceTypeMapper[dataType] : AttributeMap.AttributeType.Text;
                             }
                         }
                     }
