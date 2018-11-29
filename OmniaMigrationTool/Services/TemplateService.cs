@@ -189,13 +189,25 @@ namespace OmniaMigrationTool.Services
                             var cardinalityPos = reader.GetOrdinal("Cardinality");
 
                             if (definitions.ContainsKey(typeCode))
-                                definitions[typeCode].Attributes.Add(new AttributeMap(
+                            {
+                                var attribute = new AttributeMap(
                                     code,
                                     _codeMapper.GetValueOrDefault(code, code),
                                     (isSourceBaseType ? _sourceTypeMapper[dataType] : AttributeMap.AttributeType.Text),
                                     _targetTypeMapper[dataType],
                                     sourceCardinality: reader.IsDBNull(cardinalityPos) ? null : reader.GetString(cardinalityPos)
-                                    ));
+                                    );
+
+                                if (code == "ApprovalStatus")
+                                {
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("100", "Pending"));
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("200", "WaitingForApproval"));
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("400", "Rejected"));
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("500", "Approved"));
+                                }
+
+                                definitions[typeCode].Attributes.Add(attribute);
+                            }
                         }
                     }
                 }

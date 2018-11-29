@@ -180,7 +180,10 @@ namespace OmniaMigrationTool.Services
                             }
                             // Rewrite series in case of documents
                             if (definition.TargetKind.EqualsIgnoringCase("Document"))
+                            {
                                 mapping["_serie"] = $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{mapping["_serie"]}";
+                                mapping["_code"] = $"{mapping["_serie"]}{mapping["_number"]}";
+                            }
 
                             result.Add(mapping);
                         }
@@ -335,32 +338,41 @@ namespace OmniaMigrationTool.Services
             object Map(object value)
             {
                 value = MapValue(value);
-                switch (attribute.TargetType)
+
+                try
                 {
-                    case EntityMapDefinition.AttributeMap.AttributeType.Int:
-                        if (value is int) return value;
-                        return Convert.ToInt32(value);
+                    switch (attribute.TargetType)
+                    {
+                        case EntityMapDefinition.AttributeMap.AttributeType.Int:
+                            if (value is int) return value;
+                            return Convert.ToInt32(value);
 
-                    case EntityMapDefinition.AttributeMap.AttributeType.Long:
-                        if (value is long) return value;
-                        return Convert.ToInt64(value);
+                        case EntityMapDefinition.AttributeMap.AttributeType.Long:
+                            if (value is long) return value;
+                            return Convert.ToInt64(value);
 
-                    case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
-                        if (value is decimal) return value;
-                        return Convert.ToDecimal(value);
+                        case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
+                            if (value is decimal) return value;
+                            return Convert.ToDecimal(value);
 
-                    case EntityMapDefinition.AttributeMap.AttributeType.Date:
-                        if (value is DateTime) return value;
-                        return Convert.ToDateTime(value);
+                        case EntityMapDefinition.AttributeMap.AttributeType.Date:
+                            if (value is DateTime) return value;
+                            return Convert.ToDateTime(value);
 
-                    case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
-                        if (value is bool) return value;
-                        return Convert.ToBoolean(Convert.ToInt16(value));
+                        case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
+                            if (value is bool) return value;
+                            return Convert.ToBoolean(Convert.ToInt16(value));
 
-                    default:
-                        if (attribute.Target.Equals("_code"))
-                            return value.ToString().Substring(0, Math.Min(31, value.ToString().Length)); // TODO: Deal the the difference of size in codes
-                        return value.ToString();
+                        default:
+                            if (attribute.Target.Equals("_code"))
+                                return value.ToString().Substring(0, Math.Min(31, value.ToString().Length)); // TODO: Deal the the difference of size in codes
+                            return value.ToString();
+                    }
+                }
+                catch (SqlException ex)
+                {
+                    Console.WriteLine($"Error mapping value ´{value}´");
+                    throw;
                 }
             }
 
