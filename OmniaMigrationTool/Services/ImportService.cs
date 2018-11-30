@@ -42,7 +42,7 @@ namespace OmniaMigrationTool.Services
             var outputMessageBuilder = new StringBuilder();
             var commandPipeline = new StringBuilder();
 
-            Console.WriteLine($"Readind from folder: {_folderPath}");
+            Console.WriteLine($"Reading from folder: {_folderPath}");
 
             foreach (var file in Directory.EnumerateFiles(_folderPath, "*.csv", SearchOption.AllDirectories))
             {
