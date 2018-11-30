@@ -13,7 +13,7 @@ namespace OmniaMigrationTool.Queries
                             iif(mti.ID is null,
                                 iif(mtitem.ID is null,
                                     NULL,
-                                'Item'),
+                                'MisEntityItem'),
                             'Interaction'),
                         'Commitment'),
                     'Event'),
@@ -47,7 +47,8 @@ namespace OmniaMigrationTool.Queries
             ue.Name,
             ue.DataType,
             ue.Max,
-            rr.Cardinality
+            rr.Cardinality,
+            ue.Base
         FROM [{0}].MisEntityTypes mt
         LEFT JOIN [{0}].[ExternalEntityTypes] et
             on mt.ExternalEntityTypeID = et.ID

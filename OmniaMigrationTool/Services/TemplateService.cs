@@ -20,6 +20,7 @@ namespace OmniaMigrationTool.Services
             "ExternalCode",
             "ResponsibilityCenterDistributions",
             "TransactionKind",
+            "NumberSerieID",
         };
 
         private static readonly Dictionary<string, string> _codeMapper
@@ -34,12 +35,15 @@ namespace OmniaMigrationTool.Services
             { "ProviderAgent", "_provider" },
             { "ReceiverAgent", "_receiver" },
             { "Resource", "_resource" },
+            { "Number", "_number" },
+            { "NumberSerieCode", "_serie" },
+            { "DateCreated", "_date" },
         };
 
         private static readonly Dictionary<string, string> _kindMapper
             = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "Item", "GenericEntity" },
+            { "MisEntityItem", "GenericEntity" },
             { "UserDefinedEntity", "GenericEntity" },
             { "Resource", "Resource" },
             { "Interaction", "Document" },
@@ -181,17 +185,37 @@ namespace OmniaMigrationTool.Services
 
                             var typeCode = reader.GetString(reader.GetOrdinal("TypeCode"));
                             var dataType = reader.GetString(reader.GetOrdinal("DataType")).Substring(0, 2);
-
+                            var isSourceBaseType = reader.GetBoolean(reader.GetOrdinal("Base"));
                             var cardinalityPos = reader.GetOrdinal("Cardinality");
 
                             if (definitions.ContainsKey(typeCode))
-                                definitions[typeCode].Attributes.Add(new AttributeMap(
+                            {
+                                var attribute = new AttributeMap(
                                     code,
                                     _codeMapper.GetValueOrDefault(code, code),
-                                    _sourceTypeMapper[dataType],
+                                    MapSourceType(),
                                     _targetTypeMapper[dataType],
                                     sourceCardinality: reader.IsDBNull(cardinalityPos) ? null : reader.GetString(cardinalityPos)
-                                    ));
+                                    );
+
+                                if (code == "ApprovalStatus")
+                                {
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("100", "Pending"));
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("200", "WaitingForApproval"));
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("400", "Rejected"));
+                                    attribute.ValueMapping.Add(new AttributeMap.AttributeValueMap("500", "Approved"));
+                                }
+
+                                definitions[typeCode].Attributes.Add(attribute);
+                            }
+
+                            AttributeMap.AttributeType MapSourceType()
+                            {
+                                if (code == "ApprovalStatus")
+                                    return AttributeMap.AttributeType.Int;
+
+                                return isSourceBaseType ? _sourceTypeMapper[dataType] : AttributeMap.AttributeType.Text;
+                            }
                         }
                     }
                 }

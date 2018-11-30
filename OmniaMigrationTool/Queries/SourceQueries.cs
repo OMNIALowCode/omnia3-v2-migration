@@ -100,7 +100,7 @@ namespace OmniaMigrationTool.Queries
                 attributesFromEav = attributesFromEav.Where(c => !c.Equals("CompanyCode")).ToArray();
             }
 
-            if (!kind.EqualsIgnoringCase("MisEntityItem"))
+            if (!(kind.EqualsIgnoringCase("MisEntityItem") || kind.EqualsIgnoringCase("Commitment") || kind.EqualsIgnoringCase("Event")))
             {
                 customJoin +=
                     $"LEFT JOIN [{tenant}].ApprovalStages aps on a.ApprovalStageID = aps.ID ";

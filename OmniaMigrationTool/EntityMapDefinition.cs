@@ -53,7 +53,7 @@ namespace OmniaMigrationTool
                 Target = target;
                 SourceType = sourceType;
                 TargetType = targetType;
-                ValueMapping = valueMapping;
+                ValueMapping = valueMapping ?? new List<AttributeValueMap>();
                 SourceCardinality = sourceCardinality ?? "1";
             }
 
