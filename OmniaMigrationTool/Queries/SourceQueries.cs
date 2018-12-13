@@ -43,7 +43,7 @@ namespace OmniaMigrationTool.Queries
         WHERE t.Code = @code;";
 
         private const string TransactionalEntityQueryTemplate =
-            @"SELECT pa.Code 'ProviderAgentCode', ra.Code 'ReceiverAgentCode', rc.Code 'ResourceCode', me.* , a.*, c.*, eav.*
+            @"SELECT pa.Code 'ProviderAgent', ra.Code 'ReceiverAgent', rc.Code 'Resource', me.* , a.*, c.*, eav.*
           FROM [{0}].[MisEntities] me
           INNER JOIN [{0}].[MisEntities_TransactionalEntity] a on me.ID = a.ID
           INNER JOIN [{0}].[MisEntities_{1}] c on me.ID = c.ID
@@ -82,6 +82,16 @@ namespace OmniaMigrationTool.Queries
         INNER JOIN [{0}].[MisEntities] foreignme on rri.FKID = foreignme.ID
         INNER JOIN [{0}].vwAttributeValues av ON ak.ID = av.AttributeKeyID AND av.ID = rri.PKID
         WHERE Cardinality <> '1' AND t.Code = @code;";
+
+        private const string ApprovalTrailQueryTemplate = @"SELECT fs.Code AS 'FromCode', ts.Code AS 'ToCode', u.Email, at.Note, at.[DateTime] AS 'Date', at.MisEntityID AS 'ParentID'
+        FROM [{0}].ApprovalTrails at
+        LEFT JOIN [{0}].ApprovalStages fs ON fs.ID = at.FromApprovalStageID
+        LEFT JOIN [{0}].ApprovalStages ts ON ts.ID = at.ToApprovalStageID
+        INNER JOIN [{0}].[Users] u ON u.ID = at.UserID
+        LEFT JOIN [{0}].InteractionTypeInProcessTypes itpt on at.InteractionTypeInProcessTypeID = itpt.ID
+        LEFT JOIN [{0}].MisEntityTypes it on it.ID = itpt.InteractionTypeID
+        LEFT JOIN [{0}].MisEntityTypes mt on at.MisEntityTypeID = mt.ID
+        WHERE COALESCE(mt.Code, it.Code) = @code;";
 
         public static string EntityQuery(Guid tenant, string kind, string[] customAttributes)
         {
@@ -123,5 +133,8 @@ namespace OmniaMigrationTool.Queries
 
         public static string CardinalityQuery(Guid tenant)
             => string.Format(CardinalityQueryTemplate, tenant);
+
+        public static string ApprovalTrailQuery(Guid tenant)
+            => string.Format(ApprovalTrailQueryTemplate, tenant);
     }
 }

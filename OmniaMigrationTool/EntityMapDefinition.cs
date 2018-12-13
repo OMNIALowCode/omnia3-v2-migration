@@ -40,6 +40,8 @@ namespace OmniaMigrationTool
 
         public IList<EntityMapDefinition> Events { get; }
 
+        public EntityMapDefinition Trail { get; set; }
+
         internal class AttributeMap
         {
             public AttributeMap(string source, string target,

@@ -119,11 +119,14 @@ namespace OmniaMigrationTool.Services
 
         private async Task<IList<Dictionary<string, object>>> MapEntity(SqlConnection conn, EntityMapDefinition definition)
         {
+            var lookingFor = "Parent".AsMemory();
+
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
             var commitmentDictionary = new Dictionary<string, List<ItemProcessed>>();
             var eventDictionary = new Dictionary<string, List<ItemProcessed>>();
             var cardinalityDictionary = new Dictionary<long, Dictionary<string, List<string>>>();
+            var approvalTrailDictionary = new Dictionary<long, List<Dictionary<string, object>>>();
 
             foreach (var item in definition.Items)
                 itemDictionary.Add(item.SourceCode, await GetItems(conn, item));
@@ -135,6 +138,7 @@ namespace OmniaMigrationTool.Services
                 eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item));
 
             cardinalityDictionary = await GetAttributesWithCardinalityN(definition.SourceCode, conn);
+            approvalTrailDictionary = await GetApprovalTrails(conn, definition.SourceCode, definition.Trail);
 
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(_sourceTenant,
@@ -163,12 +167,14 @@ namespace OmniaMigrationTool.Services
 
                             foreach (var item in definition.Items)
                             {
-                                mapping[item.TargetCode] = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                var targetCode = TargetSelector(item.TargetCode.AsSpan()).ToString();
+                                mapping[targetCode] = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
 
                             foreach (var item in definition.Commitments)
                             {
+                                var targetCode = TargetSelector(item.TargetCode.AsSpan()).ToString();
                                 mapping[item.TargetCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
@@ -178,6 +184,12 @@ namespace OmniaMigrationTool.Services
                                 mapping[item.TargetCode] = eventDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
                             }
+
+                            if (definition.Trail != null && approvalTrailDictionary.ContainsKey(sourceEntityId))
+                            {
+                                mapping[definition.Trail.TargetCode] = approvalTrailDictionary[sourceEntityId];
+                            }
+
                             // Rewrite series in case of documents
                             if (definition.TargetKind.EqualsIgnoringCase("Document"))
                             {
@@ -197,6 +209,14 @@ namespace OmniaMigrationTool.Services
             }
 
             return result;
+
+            ReadOnlySpan<char> TargetSelector(ReadOnlySpan<char> targetCode)
+            {
+                if (targetCode.StartsWith(lookingFor.Span))
+                    targetCode.Slice(targetCode.IndexOf(".") + 1);
+
+                return targetCode;
+            }
         }
 
         private async Task<List<ItemProcessed>> GetItems(SqlConnection conn, EntityMapDefinition definition)
@@ -205,7 +225,9 @@ namespace OmniaMigrationTool.Services
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(_sourceTenant,
                     definition.SourceKind,
-                    definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()
+                    definition.Attributes.Where(att => att.SourceCardinality == "1")
+                        .Select(c => c.Source)
+                        .ToArray()
                         ), conn))
             {
                 command.Parameters.Add(new SqlParameter("@code",
@@ -223,6 +245,9 @@ namespace OmniaMigrationTool.Services
                         foreach (var attribute in definition.Attributes)
                             MapAttribute(mapping, reader, attribute);
 
+                        if (!mapping.ContainsKey("_name"))
+                            mapping.Add("_name", mapping["_code"]);
+
                         var parentId = reader.GetInt64(reader.GetOrdinal("MisEntityID"));
                         result.Add(new ItemProcessed(parentId, mapping));
                     }
@@ -238,7 +263,9 @@ namespace OmniaMigrationTool.Services
             using (var command = new SqlCommand(
                 Queries.SourceQueries.TransactionalEntityQuery(_sourceTenant,
                     definition.SourceKind,
-                    definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()
+                    definition.Attributes.Where(att => att.SourceCardinality == "1")
+                        .Select(c => c.Source)
+                        .ToArray()
                 ), conn))
             {
                 command.Parameters.Add(new SqlParameter("@code",
@@ -297,6 +324,50 @@ namespace OmniaMigrationTool.Services
                             {
                                 { name, new List<string> { code } }
                             });
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<Dictionary<long, List<Dictionary<string, object>>>> GetApprovalTrails(SqlConnection conn, string sourceCode, EntityMapDefinition trail)
+        {
+            var result = new Dictionary<long, List<Dictionary<string, object>>>();
+
+            if (trail == null)
+                return result;
+
+            using (var command = new SqlCommand(
+                Queries.SourceQueries.ApprovalTrailQuery(_sourceTenant), conn))
+            {
+                command.Parameters.Add(new SqlParameter("@code",
+                    sourceCode
+                ));
+
+                command.CommandTimeout = 360;
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var parentId = reader.GetInt64(reader.GetOrdinal("ParentID"));
+
+                        var mapping = new Dictionary<string, object>();
+
+                        foreach (var attribute in trail?.Attributes)
+                            MapAttribute(mapping, reader, attribute);
+
+                        if (!mapping.ContainsKey("_code"))
+                            mapping.Add("_code", Guid.NewGuid());
+
+                        if (!mapping.ContainsKey("_name"))
+                            mapping.Add("_name", $"Approval_{mapping["_code"]}");
+
+                        if (result.ContainsKey(parentId))
+                            result[parentId].Add(mapping);
+                        else
+                            result.Add(parentId, new List<Dictionary<string, object>> { { mapping } });
                     }
                 }
             }

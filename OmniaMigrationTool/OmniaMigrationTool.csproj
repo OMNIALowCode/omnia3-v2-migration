@@ -12,6 +12,7 @@
     <PackageReference Include="Omnia.Libraries.GenericExtensions" Version="3.0.71" />
     <PackageReference Include="System.Data.Common" Version="4.3.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.5.1" />
+    <PackageReference Include="System.Memory" Version="4.5.1" />
   </ItemGroup>
 
   <ItemGroup>
