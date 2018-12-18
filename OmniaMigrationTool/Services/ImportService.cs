@@ -39,6 +39,9 @@ namespace OmniaMigrationTool.Services
                 }
             }
 
+            if (String.IsNullOrEmpty(targetSchema))
+                throw new InvalidOperationException($"Import - Schema for tenant '{_tenantCode}' not found");
+
             var outputMessageBuilder = new StringBuilder();
             var commandPipeline = new StringBuilder();
 
@@ -54,7 +57,7 @@ namespace OmniaMigrationTool.Services
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
-                    Arguments = $@"/c ""SET PGPASSWORD={builder.Password}&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
+                    Arguments = $@"/c ""SET ""PGPASSWORD={builder.Password}""&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     UseShellExecute = false,
                     CreateNoWindow = true,

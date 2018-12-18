@@ -245,7 +245,7 @@ namespace OmniaMigrationTool.Services
                         foreach (var attribute in definition.Attributes)
                             MapAttribute(mapping, reader, attribute);
 
-                        if (!mapping.ContainsKey("_name"))
+                        if (!mapping.ContainsKey("_name") && mapping.ContainsKey("_code"))
                             mapping.Add("_name", mapping["_code"]);
 
                         var parentId = reader.GetInt64(reader.GetOrdinal("MisEntityID"));
