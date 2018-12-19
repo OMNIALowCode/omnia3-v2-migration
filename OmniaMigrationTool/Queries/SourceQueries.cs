@@ -136,5 +136,16 @@ namespace OmniaMigrationTool.Queries
 
         public static string ApprovalTrailQuery(Guid tenant)
             => string.Format(ApprovalTrailQueryTemplate, tenant);
+
+        public static string UsersInRolesQuery(Guid tenant)
+        {
+            return $@"
+                SELECT users.Email, roles.Code as DomainRole FROM [{tenant}].UsersInDomainRoles usersInRoles
+                INNER JOIN[{tenant}].Users users
+                    ON usersInRoles.UserID = users.ID
+                INNER JOIN[{tenant}].DomainRoles roles
+                    ON usersInRoles.DomainRoleID = roles.ID
+                WHERE Email NOT LIKE '%@connector%' AND Email<> 'master@mymis.biz'";
+        }
     }
 }

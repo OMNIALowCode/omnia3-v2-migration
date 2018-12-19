@@ -76,6 +76,43 @@ namespace OmniaMigrationTool
                 });
             });
 
+            app.Command("export-users", (command) =>
+            {
+                command.Description = "Export users data from source system.";
+
+                var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
+
+                command.OnExecute(() =>
+                {
+                    var service = new ExportUsersService(tenantOption.Value(), connectionStringOption.Value());
+                    service.Export().GetAwaiter().GetResult();
+
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
+
+            app.Command("import-users", (command) =>
+            {
+                command.Description = "Import users data from source system.";
+
+                var folderOption = command.Option("--f", "Import folder path", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("--t", "Import tenant", CommandOptionType.SingleValue);
+                var apiAddressOption = command.Option("--e", "Import API endpoint", CommandOptionType.SingleValue);
+                var clientIdOption = command.Option("--clientId", "API Client's ID", CommandOptionType.SingleValue);
+                var clientSecretOption = command.Option("--clientSecret ", "API Client's Secret", CommandOptionType.SingleValue);
+
+                command.OnExecute(() =>
+                {
+                    var service = new ImportUsersService(folderOption.Value(), tenantOption.Value(), apiAddressOption.Value(), clientIdOption.Value(), clientSecretOption.Value());
+                    service.Import().GetAwaiter().GetResult();
+
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
+
             return app.Execute(args);
         }
     }
