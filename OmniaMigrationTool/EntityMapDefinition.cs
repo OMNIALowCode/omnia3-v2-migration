@@ -79,7 +79,8 @@ namespace OmniaMigrationTool
                 Long,
                 Decimal,
                 Date,
-                Boolean
+                Boolean,
+                File
             }
 
             internal class AttributeValueMap

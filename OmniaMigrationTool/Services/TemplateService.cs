@@ -74,7 +74,7 @@ namespace OmniaMigrationTool.Services
             { "IN", AttributeMap.AttributeType.Int },
             { "PS", AttributeMap.AttributeType.Text },
             { "VP", AttributeMap.AttributeType.Text },
-            { "BD", AttributeMap.AttributeType.Text },
+            { "BD", AttributeMap.AttributeType.File },
         };
 
         private readonly Guid _sourceTenant;

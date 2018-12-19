@@ -13,7 +13,7 @@ namespace OmniaMigrationTool.Services
 {
     internal class ExportService
     {
-        private static Stopwatch stopwatch = new Stopwatch();
+        private static readonly Stopwatch Stopwatch = new Stopwatch();
 
         private readonly Guid _sourceTenant;
         private readonly string _connectionString;
@@ -40,18 +40,17 @@ namespace OmniaMigrationTool.Services
 
             Console.WriteLine($"Writing to folder: {tempDir.Path}");
 
-            stopwatch.Start();
+            Stopwatch.Start();
 
             await Process(tempDir.Path);
 
-            stopwatch.Stop();
+            Stopwatch.Stop();
 
-            Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
+            Console.WriteLine("Time elapsed: {0}", Stopwatch.Elapsed);
         }
 
         private async Task Process(string outputPath)
         {
-            // using (var conn = new SqlConnection("Data Source=sqlsrvmymis66ey4j7eutvtc.database.windows.net;Initial Catalog=sqldbmymis66ey4j7eutvtc;user id=MyMisMaster;password=4FXsJMDlp5JWHIzk;MultipleActiveResultSets=True;Connection Timeout=60"))
             using (var conn = new SqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
@@ -65,18 +64,26 @@ namespace OmniaMigrationTool.Services
                         // Process Series
                         await _seriesProcessor.ProcessAsync(outputPath, conn, sw);
 
-                        // Process Entities
-                        var group = _definitions.GroupBy(g => g.TargetCode);
-                        foreach (var item in group)
+                        using (var fileMappingStream = new FileStream(Path.Combine(outputPath, "file_mapping.csv"),
+                            FileMode.OpenOrCreate, FileAccess.Write))
                         {
-                            await ProcessEntity(outputPath, conn, item.AsEnumerable(), sw);
+                            using (var fileMappingStreamWriter = new StreamWriter(fileMappingStream))
+                            {
+
+                                // Process Entities
+                                var group = _definitions.GroupBy(g => g.TargetCode);
+                                foreach (var item in group)
+                                {
+                                    await ProcessEntity(outputPath, conn, item.AsEnumerable(), sw, fileMappingStreamWriter);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        private async Task ProcessEntity(string outputPath, SqlConnection conn, IEnumerable<EntityMapDefinition> definitions, StreamWriter eventStoreStream)
+        private async Task ProcessEntity(string outputPath, SqlConnection conn, IEnumerable<EntityMapDefinition> definitions, StreamWriter eventStoreStream, StreamWriter fileMappingStream)
         {
             var mappingCollection = new List<Dictionary<string, object>>();
 
@@ -84,7 +91,7 @@ namespace OmniaMigrationTool.Services
 
             foreach (var definition in definitions)
             {
-                var mappingResult = await MapEntity(conn, definition);
+                var mappingResult = await MapEntity(conn, definition, fileMappingStream);
 
                 foreach (var result in mappingResult)
                 {
@@ -117,7 +124,7 @@ namespace OmniaMigrationTool.Services
             }
         }
 
-        private async Task<IList<Dictionary<string, object>>> MapEntity(SqlConnection conn, EntityMapDefinition definition)
+        private async Task<IList<Dictionary<string, object>>> MapEntity(SqlConnection conn, EntityMapDefinition definition, StreamWriter fileMappingStream)
         {
             var lookingFor = "Parent".AsMemory();
 
@@ -129,16 +136,16 @@ namespace OmniaMigrationTool.Services
             var approvalTrailDictionary = new Dictionary<long, List<Dictionary<string, object>>>();
 
             foreach (var item in definition.Items)
-                itemDictionary.Add(item.SourceCode, await GetItems(conn, item));
+                itemDictionary.Add(item.SourceCode, await GetItems(conn, item, definition, fileMappingStream));
 
             foreach (var item in definition.Commitments)
-                commitmentDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item));
+                commitmentDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item, definition, fileMappingStream));
 
             foreach (var item in definition.Events)
-                eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item));
+                eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item, definition, fileMappingStream));
 
             cardinalityDictionary = await GetAttributesWithCardinalityN(definition.SourceCode, conn);
-            approvalTrailDictionary = await GetApprovalTrails(conn, definition.SourceCode, definition.Trail);
+            approvalTrailDictionary = await GetApprovalTrails(conn, definition.SourceCode, definition.Trail, definition, fileMappingStream);
 
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(_sourceTenant,
@@ -197,6 +204,12 @@ namespace OmniaMigrationTool.Services
                                 mapping["_code"] = $"{mapping["_serie"]}{mapping["_number"]}";
                             }
 
+                            foreach (var attribute in definition.Attributes.Where(a =>
+                                a.TargetType.Equals(EntityMapDefinition.AttributeMap.AttributeType.File)))
+                                if (mapping.ContainsKey(attribute.Target))
+                                    mapping[attribute.Target] = await MapFile(mapping[attribute.Target]?.ToString(), definition.TargetCode,
+                                    mapping["_code"]?.ToString(), fileMappingStream);
+
                             result.Add(mapping);
                         }
                     }
@@ -219,7 +232,7 @@ namespace OmniaMigrationTool.Services
             }
         }
 
-        private async Task<List<ItemProcessed>> GetItems(SqlConnection conn, EntityMapDefinition definition)
+        private async Task<List<ItemProcessed>> GetItems(SqlConnection conn, EntityMapDefinition definition, EntityMapDefinition parentDefinition, StreamWriter fileMappingStream)
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
@@ -245,6 +258,12 @@ namespace OmniaMigrationTool.Services
                         foreach (var attribute in definition.Attributes)
                             MapAttribute(mapping, reader, attribute);
 
+                        foreach (var attribute in definition.Attributes.Where(a =>
+                            a.TargetType.Equals(EntityMapDefinition.AttributeMap.AttributeType.File)))
+                            if (mapping.ContainsKey(attribute.Target))
+                                mapping[attribute.Target] = await MapFile(mapping[attribute.Target]?.ToString(), parentDefinition.TargetCode,
+                                mapping["_code"]?.ToString(), fileMappingStream);
+
                         if (!mapping.ContainsKey("_name") && mapping.ContainsKey("_code"))
                             mapping.Add("_name", mapping["_code"]);
 
@@ -257,7 +276,7 @@ namespace OmniaMigrationTool.Services
             return result;
         }
 
-        private async Task<List<ItemProcessed>> GetTransactionalEntity(SqlConnection conn, EntityMapDefinition definition)
+        private async Task<List<ItemProcessed>> GetTransactionalEntity(SqlConnection conn, EntityMapDefinition definition, EntityMapDefinition parentDefinition, StreamWriter fileMappingStream)
         {
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
@@ -282,6 +301,12 @@ namespace OmniaMigrationTool.Services
 
                         foreach (var attribute in definition.Attributes)
                             MapAttribute(mapping, reader, attribute);
+
+                        foreach (var attribute in definition.Attributes.Where(a =>
+                            a.TargetType.Equals(EntityMapDefinition.AttributeMap.AttributeType.File)))
+                            if (mapping.ContainsKey(attribute.Target))
+                                mapping[attribute.Target] = await MapFile(mapping[attribute.Target]?.ToString(), parentDefinition.TargetCode,
+                                mapping["_code"]?.ToString(), fileMappingStream);
 
                         var parentId = reader.GetInt64(reader.GetOrdinal("InteractionID"));
                         result.Add(new ItemProcessed(parentId, mapping));
@@ -331,7 +356,7 @@ namespace OmniaMigrationTool.Services
             return result;
         }
 
-        private async Task<Dictionary<long, List<Dictionary<string, object>>>> GetApprovalTrails(SqlConnection conn, string sourceCode, EntityMapDefinition trail)
+        private async Task<Dictionary<long, List<Dictionary<string, object>>>> GetApprovalTrails(SqlConnection conn, string sourceCode, EntityMapDefinition trail, EntityMapDefinition parentDefinition, StreamWriter fileMappingStream)
         {
             var result = new Dictionary<long, List<Dictionary<string, object>>>();
 
@@ -355,7 +380,7 @@ namespace OmniaMigrationTool.Services
 
                         var mapping = new Dictionary<string, object>();
 
-                        foreach (var attribute in trail?.Attributes)
+                        foreach (var attribute in trail.Attributes)
                             MapAttribute(mapping, reader, attribute);
 
                         if (!mapping.ContainsKey("_code"))
@@ -363,6 +388,12 @@ namespace OmniaMigrationTool.Services
 
                         if (!mapping.ContainsKey("_name"))
                             mapping.Add("_name", $"Approval_{mapping["_code"]}");
+
+                        foreach (var attribute in trail.Attributes.Where(a =>
+                            a.TargetType.Equals(EntityMapDefinition.AttributeMap.AttributeType.File)))
+                            if (mapping.ContainsKey(attribute.Target))
+                                mapping[attribute.Target] = await MapFile(mapping[attribute.Target]?.ToString(), parentDefinition.TargetCode,
+                                    mapping["_code"]?.ToString(), fileMappingStream);
 
                         if (result.ContainsKey(parentId))
                             result[parentId].Add(mapping);
@@ -375,7 +406,14 @@ namespace OmniaMigrationTool.Services
             return result;
         }
 
-        private void MapAttribute(IDictionary<string, object> data, IDataRecord reader, EntityMapDefinition.AttributeMap attribute)
+        private static async Task<string> MapFile(
+            string value, string targetDefinitionCode, string targetCode, StreamWriter fileMappingStream)
+        {
+            await fileMappingStream.WriteLineAsync($"{value},{value.Replace("Binary", $"{targetDefinitionCode}/{targetCode}")}");
+            return value.Replace("Binary", targetCode);
+        }
+
+        private static void MapAttribute(IDictionary<string, object> data, IDataRecord reader, EntityMapDefinition.AttributeMap attribute)
         {
             if (reader.IsDBNull(reader.GetOrdinal(attribute.Source))) return;
 
@@ -433,14 +471,13 @@ namespace OmniaMigrationTool.Services
                         case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
                             if (value is bool) return value;
                             return Convert.ToBoolean(Convert.ToInt16(value));
-
                         default:
                             if (attribute.Target.Equals("_code"))
                                 return value.ToString().Substring(0, Math.Min(31, value.ToString().Length)); // TODO: Deal the the difference of size in codes
                             return value.ToString();
                     }
                 }
-                catch (SqlException ex)
+                catch (SqlException)
                 {
                     Console.WriteLine($"Error mapping value ´{value}´");
                     throw;

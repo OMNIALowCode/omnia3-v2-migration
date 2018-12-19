@@ -42,7 +42,7 @@ namespace OmniaMigrationTool
                 command.Description = "Export data from source system.";
 
                 var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
-                var mappingOption = command.Option("--m", "Export maping", CommandOptionType.SingleValue);
+                var mappingOption = command.Option("--m", "Export mapping", CommandOptionType.SingleValue);
                 var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
@@ -71,6 +71,26 @@ namespace OmniaMigrationTool
                     var service = new ImportService(folderOption.Value(), tenantOption.Value(), connectionStringOption.Value());
                     service.Import().GetAwaiter().GetResult();
                     Console.WriteLine("Import finished successfully.");
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
+
+
+
+
+            app.Command("export-files", (command) =>
+            {
+                command.Description = "Export files from source system.";
+
+                var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
+
+                command.OnExecute(() =>
+                {
+                    var service = new ExportBlobsService(tenantOption.Value(), connectionStringOption.Value());
+                    service.Export().GetAwaiter().GetResult();
+
                     Console.ReadKey();
                     return 0;
                 });
@@ -112,6 +132,28 @@ namespace OmniaMigrationTool
                     return 0;
                 });
             });
+
+            app.Command("import-files", (command) =>
+            {
+                command.Description = "Export files from source system.";
+
+                var mappingsFolderOption = command.Option("--m", "Mappings folder", CommandOptionType.SingleValue);
+                var filesFolderOption = command.Option("--f", "Files folder", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("--t", "Import tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("--c", "Import connection string", CommandOptionType.SingleValue);
+
+                command.OnExecute(() =>
+                {
+                    var service = new ImportBlobsService(mappingsFolderOption.Value(), filesFolderOption.Value(), tenantOption.Value(), connectionStringOption.Value());
+                    service.Import().GetAwaiter().GetResult();
+
+                    Console.ReadKey();
+                    return 0;
+                });
+            });
+
+
+
 
             return app.Execute(args);
         }
