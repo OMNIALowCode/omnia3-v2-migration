@@ -109,6 +109,15 @@ namespace OmniaMigrationTool.Queries
 
                 attributesFromEav = attributesFromEav.Where(c => !c.Equals("CompanyCode")).ToArray();
             }
+            else if (kind.EqualsIgnoringCase("Agent"))
+            {
+                customJoin =
+                    $"LEFT JOIN [{tenant}].Users us on a.UserID = us.ID ";
+                customSelect =
+                    ", us.Email 'UserEmail', us.ContactEmail 'UserContactEmail' ";
+
+                attributesFromEav = attributesFromEav.Where(c => !c.Equals("UserEmail") && !c.Equals("UserContactEmail")).ToArray();
+            }
 
             if (!(kind.EqualsIgnoringCase("MisEntityItem") || kind.EqualsIgnoringCase("Commitment") || kind.EqualsIgnoringCase("Event")))
             {
@@ -117,7 +126,7 @@ namespace OmniaMigrationTool.Queries
                 customSelect +=
                     ", aps.Code 'ApprovalStageCode' ";
 
-                attributesFromEav = attributesFromEav.Where(c => !c.Equals("ApprovalStageCode")).ToArray();
+                attributesFromEav = attributesFromEav.Where(c => !c.Equals("ApprovalStageCode")).Distinct().ToArray();
             }
 
             return string.Format(EntityQueryTemplate, tenant, kind,
@@ -126,7 +135,7 @@ namespace OmniaMigrationTool.Queries
 
         public static string TransactionalEntityQuery(Guid tenant, string kind, string[] customAttributes)
             => string.Format(TransactionalEntityQueryTemplate, tenant, kind, string.Join(",",
-                customAttributes.Where(c => !EntitySystemAttributes.Contains(c) && !TransactionalEntitySystemAttributes.Contains(c))));
+                customAttributes.Where(c => !EntitySystemAttributes.Contains(c) && !TransactionalEntitySystemAttributes.Contains(c)).Distinct()));
 
         public static string NumeratorsQuery(Guid tenant)
             => string.Format(NumeratorsQueryTemplate, tenant);

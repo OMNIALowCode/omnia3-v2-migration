@@ -69,7 +69,6 @@ namespace OmniaMigrationTool.Services
                         {
                             using (var fileMappingStreamWriter = new StreamWriter(fileMappingStream))
                             {
-
                                 // Process Entities
                                 var group = _definitions.GroupBy(g => g.TargetCode);
                                 foreach (var item in group)
@@ -126,6 +125,7 @@ namespace OmniaMigrationTool.Services
 
         private async Task<IList<Dictionary<string, object>>> MapEntity(SqlConnection conn, EntityMapDefinition definition, StreamWriter fileMappingStream)
         {
+            int currentNumber = 1;
             var lookingFor = "Parent".AsMemory();
 
             var result = new List<Dictionary<string, object>>();
@@ -168,28 +168,62 @@ namespace OmniaMigrationTool.Services
                             {
                                 if (attribute.SourceCardinality == "1")
                                     MapAttribute(mapping, reader, attribute);
-                                else
+                                else if (cardinalityDictionary.ContainsKey(sourceEntityId))
                                     mapping[attribute.Target] = cardinalityDictionary[sourceEntityId][attribute.Source];
                             }
 
                             foreach (var item in definition.Items)
                             {
-                                var targetCode = TargetSelector(item.TargetCode.AsSpan()).ToString();
-                                mapping[targetCode] = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                var data = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
+
+                                foreach (var parentAttribute in item.Attributes.Where(a => a.Target.StartsWith("Parent.")))
+                                {
+                                    foreach (var dataElement in data)
+                                    {
+                                        var attributeName = parentAttribute.Target.Split('.')[1];
+                                        if (mapping.ContainsKey(attributeName))
+                                            dataElement[attributeName] = mapping[attributeName];
+                                    }
+                                }
+
+                                mapping[item.TargetCode] = data;
                             }
 
                             foreach (var item in definition.Commitments)
                             {
-                                var targetCode = TargetSelector(item.TargetCode.AsSpan()).ToString();
-                                mapping[item.TargetCode] = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                var data = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
+
+                                foreach (var parentAttribute in item.Attributes.Where(a => a.Target.StartsWith("Parent.")))
+                                {
+                                    foreach (var dataElement in data)
+                                    {
+                                        var attributeName = parentAttribute.Target.Split('.')[1];
+                                        if (mapping.ContainsKey(attributeName))
+                                            dataElement[attributeName] = mapping[attributeName];
+                                    }
+                                }
+
+                                mapping[item.TargetCode] = data;
                             }
 
                             foreach (var item in definition.Events)
                             {
-                                mapping[item.TargetCode] = eventDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
+                                var data = eventDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
+
+                                foreach (var parentAttribute in item.Attributes.Where(a => a.Target.StartsWith("Parent.")))
+                                {
+                                    foreach (var dataElement in data)
+                                    {
+                                        var attributeName = parentAttribute.Target.Split('.')[1];
+                                        if (mapping.ContainsKey(attributeName))
+                                            dataElement[attributeName] = mapping[attributeName];
+                                    }
+                                }
+
+                                mapping[item.TargetCode] = data;
                             }
 
                             if (definition.Trail != null && approvalTrailDictionary.ContainsKey(sourceEntityId))
@@ -198,10 +232,20 @@ namespace OmniaMigrationTool.Services
                             }
 
                             // Rewrite series in case of documents
-                            if (definition.TargetKind.EqualsIgnoringCase("Document"))
+                            if (definition.TargetKind.EqualsIgnoringCase("Document") && definition.SourceKind.EqualsIgnoringCase("Interaction"))
                             {
-                                mapping["_serie"] = $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{mapping["_serie"]}";
-                                mapping["_code"] = $"{mapping["_serie"]}{mapping["_number"]}";
+                                if (mapping.ContainsKey("_serie"))
+                                {
+                                    mapping["_serie"] = $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{mapping["_serie"]}";
+                                    mapping["_code"] = $"{mapping["_serie"]}{mapping["_number"]}";
+                                }
+                                else if (!mapping.ContainsKey("_code"))
+                                    mapping["_code"] = Guid.NewGuid().ToString("N");
+                            }
+                            else if (definition.TargetKind.EqualsIgnoringCase("Document"))
+                            {
+                                mapping["_serie"] = "A";
+                                mapping["_number"] = currentNumber++;
                             }
 
                             foreach (var attribute in definition.Attributes.Where(a =>
@@ -234,6 +278,8 @@ namespace OmniaMigrationTool.Services
 
         private async Task<List<ItemProcessed>> GetItems(SqlConnection conn, EntityMapDefinition definition, EntityMapDefinition parentDefinition, StreamWriter fileMappingStream)
         {
+            Console.WriteLine($"GetItems: {definition.SourceCode}");
+
             var result = new List<ItemProcessed>();
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(_sourceTenant,
@@ -471,6 +517,7 @@ namespace OmniaMigrationTool.Services
                         case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
                             if (value is bool) return value;
                             return Convert.ToBoolean(Convert.ToInt16(value));
+
                         default:
                             if (attribute.Target.Equals("_code"))
                                 return value.ToString().Substring(0, Math.Min(31, value.ToString().Length)); // TODO: Deal the the difference of size in codes
