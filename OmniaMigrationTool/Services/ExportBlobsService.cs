@@ -102,13 +102,20 @@ namespace OmniaMigrationTool.Services
                 }
                 catch (System.Security.Cryptography.CryptographicException)
                 {
-                    //If a CryptoException is thrown, try to decrypt with padding mode as zero (the padding mode used on older encrypted files).
-                    rijAlg.Padding = PaddingMode.Zeros;
-                    using (var decryptor = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV))
+                    try
                     {
-                        return PerformCryptography(decryptor, encryptedArray);
+                        //If a CryptoException is thrown, try to decrypt with padding mode as zero (the padding mode used on older encrypted files).
+                        rijAlg.Padding = PaddingMode.Zeros;
+                        using (var decryptor = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV))
+                        {
+                            return PerformCryptography(decryptor, encryptedArray);
+                        }
                     }
-
+                    catch (System.Security.Cryptography.CryptographicException)
+                    {
+                        // If can't decrypt due to CryptoException return the original data
+                        return encryptedArray;
+                    }
                 }
             }
         }

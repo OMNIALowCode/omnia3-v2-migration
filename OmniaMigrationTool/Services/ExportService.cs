@@ -126,7 +126,6 @@ namespace OmniaMigrationTool.Services
         private async Task<IList<Dictionary<string, object>>> MapEntity(SqlConnection conn, EntityMapDefinition definition, StreamWriter fileMappingStream)
         {
             int currentNumber = 1;
-            var lookingFor = "Parent".AsMemory();
 
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
@@ -150,7 +149,7 @@ namespace OmniaMigrationTool.Services
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(_sourceTenant,
                     definition.SourceKind,
-                    definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => c.Source).ToArray()), conn))
+                    definition.Attributes.Where(att => att.SourceCardinality == "1").Select(c => MapSourceColumn(c.Source)).Distinct().ToArray()), conn))
             {
                 command.Parameters.Add(new SqlParameter("@code", definition.SourceCode));
                 try
@@ -177,13 +176,13 @@ namespace OmniaMigrationTool.Services
                                 var data = itemDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
 
-                                foreach (var parentAttribute in item.Attributes.Where(a => a.Target.StartsWith("Parent.")))
+                                foreach (var parentAttribute in item.Attributes.Where(a => a.Source.StartsWith("Parent.")))
                                 {
                                     foreach (var dataElement in data)
                                     {
-                                        var attributeName = parentAttribute.Target.Split('.')[1];
+                                        var attributeName = parentAttribute.Source.Split('.')[1];
                                         if (mapping.ContainsKey(attributeName))
-                                            dataElement[attributeName] = mapping[attributeName];
+                                            dataElement[parentAttribute.Target] = mapping[attributeName];
                                     }
                                 }
 
@@ -195,13 +194,13 @@ namespace OmniaMigrationTool.Services
                                 var data = commitmentDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
 
-                                foreach (var parentAttribute in item.Attributes.Where(a => a.Target.StartsWith("Parent.")))
+                                foreach (var parentAttribute in item.Attributes.Where(a => a.Source.StartsWith("Parent.")))
                                 {
                                     foreach (var dataElement in data)
                                     {
-                                        var attributeName = parentAttribute.Target.Split('.')[1];
+                                        var attributeName = parentAttribute.Source.Split('.')[1];
                                         if (mapping.ContainsKey(attributeName))
-                                            dataElement[attributeName] = mapping[attributeName];
+                                            dataElement[parentAttribute.Target] = mapping[attributeName];
                                     }
                                 }
 
@@ -213,13 +212,13 @@ namespace OmniaMigrationTool.Services
                                 var data = eventDictionary[item.SourceCode].Where(i => i.ParentId.Equals(sourceEntityId))
                                     .Select(i => i.Data);
 
-                                foreach (var parentAttribute in item.Attributes.Where(a => a.Target.StartsWith("Parent.")))
+                                foreach (var parentAttribute in item.Attributes.Where(a => a.Source.StartsWith("Parent.")))
                                 {
                                     foreach (var dataElement in data)
                                     {
-                                        var attributeName = parentAttribute.Target.Split('.')[1];
+                                        var attributeName = parentAttribute.Source.Split('.')[1];
                                         if (mapping.ContainsKey(attributeName))
-                                            dataElement[attributeName] = mapping[attributeName];
+                                            dataElement[parentAttribute.Target] = mapping[attributeName];
                                     }
                                 }
 
@@ -266,14 +265,6 @@ namespace OmniaMigrationTool.Services
             }
 
             return result;
-
-            ReadOnlySpan<char> TargetSelector(ReadOnlySpan<char> targetCode)
-            {
-                if (targetCode.StartsWith(lookingFor.Span))
-                    targetCode.Slice(targetCode.IndexOf(".") + 1);
-
-                return targetCode;
-            }
         }
 
         private async Task<List<ItemProcessed>> GetItems(SqlConnection conn, EntityMapDefinition definition, EntityMapDefinition parentDefinition, StreamWriter fileMappingStream)
@@ -285,7 +276,8 @@ namespace OmniaMigrationTool.Services
                 Queries.SourceQueries.EntityQuery(_sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Where(att => att.SourceCardinality == "1")
-                        .Select(c => c.Source)
+                        .Select(c => MapSourceColumn(c.Source))
+                        .Distinct()
                         .ToArray()
                         ), conn))
             {
@@ -329,7 +321,8 @@ namespace OmniaMigrationTool.Services
                 Queries.SourceQueries.TransactionalEntityQuery(_sourceTenant,
                     definition.SourceKind,
                     definition.Attributes.Where(att => att.SourceCardinality == "1")
-                        .Select(c => c.Source)
+                        .Select(c => MapSourceColumn(c.Source))
+                        .Distinct()
                         .ToArray()
                 ), conn))
             {
@@ -361,6 +354,14 @@ namespace OmniaMigrationTool.Services
             }
 
             return result;
+        }
+
+        private static string MapSourceColumn(string sourceColumnName)
+        {
+            if (sourceColumnName.StartsWith("Parent."))
+                return sourceColumnName.Replace("Parent.", "");
+
+            return sourceColumnName;
         }
 
         private async Task<Dictionary<long, Dictionary<string, List<string>>>> GetAttributesWithCardinalityN(string sourceCode, SqlConnection conn)
@@ -461,32 +462,34 @@ namespace OmniaMigrationTool.Services
 
         private static void MapAttribute(IDictionary<string, object> data, IDataRecord reader, EntityMapDefinition.AttributeMap attribute)
         {
-            if (reader.IsDBNull(reader.GetOrdinal(attribute.Source))) return;
+            var sourceColumnName = MapSourceColumn(attribute.Source);
+
+            if (reader.IsDBNull(reader.GetOrdinal(sourceColumnName))) return;
 
             switch (attribute.SourceType)
             {
                 case EntityMapDefinition.AttributeMap.AttributeType.Long:
-                    data.Add(attribute.Target, Map(reader.GetInt64(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetInt64(reader.GetOrdinal(sourceColumnName))));
                     break;
 
                 case EntityMapDefinition.AttributeMap.AttributeType.Int:
-                    data.Add(attribute.Target, Map(reader.GetInt32(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetInt32(reader.GetOrdinal(sourceColumnName))));
                     break;
 
                 case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
-                    data.Add(attribute.Target, Map(reader.GetDecimal(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetDecimal(reader.GetOrdinal(sourceColumnName))));
                     break;
 
                 case EntityMapDefinition.AttributeMap.AttributeType.Date:
-                    data.Add(attribute.Target, Map(reader.GetDateTime(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetDateTime(reader.GetOrdinal(sourceColumnName))));
                     break;
 
                 case EntityMapDefinition.AttributeMap.AttributeType.Boolean:
-                    data.Add(attribute.Target, Map(reader.GetBoolean(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetBoolean(reader.GetOrdinal(sourceColumnName))));
                     break;
 
                 default:
-                    data.Add(attribute.Target, Map(reader.GetString(reader.GetOrdinal(attribute.Source))));
+                    data.Add(attribute.Target, Map(reader.GetString(reader.GetOrdinal(sourceColumnName))));
                     break;
             }
 

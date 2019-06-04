@@ -52,7 +52,30 @@ namespace OmniaMigrationTool.Services
 
                 foreach (var role in rolesData)
                 {
-                    await UpdateRole(role.Key, role.Value);
+                    var currentIteration = 0;
+                    var requestSize = 25;
+                    var remainingUsersToProcess = role.Value.Count;
+
+                    Console.WriteLine($"Updating role '{role.Key}' ({role.Value.Count} users)");
+
+                    while (remainingUsersToProcess > 0)
+                    {
+                        var usersToProcess = role.Value.Skip(currentIteration * requestSize).Take(requestSize).ToList();
+
+                        try
+                        {
+                            await UpdateRole(role.Key, usersToProcess);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error while updating the role '{role.Key}'");
+                            Console.WriteLine(ex.Message);
+                            Console.WriteLine($"The process will continue.");
+                        }
+
+                        remainingUsersToProcess = remainingUsersToProcess - usersToProcess.Count();
+                        currentIteration++;
+                    }
                 }
             }
             catch (Exception ex)
