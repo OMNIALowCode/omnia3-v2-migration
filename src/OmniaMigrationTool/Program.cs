@@ -88,7 +88,7 @@ namespace OmniaMigrationTool
                 command.Description = "Export files from source system.";
 
                 var tenantOption = command.Option("-t | --tenant", "Tenant", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("-c | --connection-string", "Connection string", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Blob storage Connection string", CommandOptionType.SingleValue);
                 var encryptionKeyOption = command.Option("-ek | --encryption-key", "Export storage Encryption Key", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
@@ -145,10 +145,10 @@ namespace OmniaMigrationTool
                 command.HelpOption("-h | --help");
                 command.Description = "Export files from source system.";
 
-                var mappingsFolderOption = command.Option("-m | --mappings", "Mappings folder", CommandOptionType.SingleValue);
+                var mappingsFolderOption = command.Option("-m | --mappings", "Mappings folder where the file_mapping.csv was stored", CommandOptionType.SingleValue);
                 var filesFolderOption = command.Option("-f | --folder", "Files folder", CommandOptionType.SingleValue);
                 var tenantOption = command.Option("-t | --tenant", "Import to tenant", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("-c | --connection-string", "Import connection string", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Blob storage connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -159,7 +159,6 @@ namespace OmniaMigrationTool
                     return 0;
                 });
             });
-
 
 
 
