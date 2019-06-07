@@ -15,12 +15,13 @@ namespace OmniaMigrationTool.Services
 
         private readonly Guid _sourceTenant;
         private readonly string _connectionString;
-        private readonly string _encryptionKey = "9f6e0ed6a74f3a02be0c1effa300b834";
+        private readonly string _encryptionKey;
 
-        public ExportBlobsService(string tenant, string connectionString)
+        public ExportBlobsService(string tenant, string connectionString, string encryptionKey)
         {
             _sourceTenant = Guid.Parse(tenant);
             _connectionString = connectionString;
+            _encryptionKey = encryptionKey;
         }
 
         public async Task Export()

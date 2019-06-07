@@ -85,10 +85,11 @@ namespace OmniaMigrationTool
 
                 var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
                 var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
+                var encryptionKeyOption = command.Option("--ek", "Export storage Encryption Key", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
-                    var service = new ExportBlobsService(tenantOption.Value(), connectionStringOption.Value());
+                    var service = new ExportBlobsService(tenantOption.Value(), connectionStringOption.Value(), encryptionKeyOption.Value());
                     service.Export().GetAwaiter().GetResult();
 
                     Console.ReadKey();
