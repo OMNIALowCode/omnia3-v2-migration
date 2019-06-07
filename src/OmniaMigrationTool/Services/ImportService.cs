@@ -49,7 +49,8 @@ namespace OmniaMigrationTool.Services
 
             foreach (var file in Directory.EnumerateFiles(_folderPath, "*.csv", SearchOption.AllDirectories))
             {
-                commandPipeline.Append($@"-c ""\copy {targetSchema}.{Path.GetFileNameWithoutExtension(file)} FROM '{Path.Combine(_folderPath, file)}' WITH DELIMITER ',' CSV HEADER"" ");
+                if (!file.Equals("file_mapping.csv"))
+                    commandPipeline.Append($@"-c ""\copy {targetSchema}.{Path.GetFileNameWithoutExtension(file)} FROM '{Path.Combine(_folderPath, file)}' WITH DELIMITER ',' CSV HEADER"" ");
             }
 
             using (var process = new Process
