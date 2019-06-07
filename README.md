@@ -137,5 +137,9 @@ When mapping an Agent, you can access to the *UserEmail* and *UserContactEmail* 
 
 When mapping custom attributes from V2, the Source Type should be "Text" even when the Target Type is Decimal or Int for example.
 
+## Naming when mapping Items, Events and Commitments
+
+When mapping an Item, Event or Commitment, the Target Code should be name of the target Attribute, instead of the actual name of the Type.
+
 # License
 OMNIA 3 Samples are available under the MIT license.
