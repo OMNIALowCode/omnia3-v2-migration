@@ -90,7 +90,7 @@ Use the command Import to import the data existing in the V2 Source database.
 Example:
 
 ```
-OmniaMigrationTool.exe import --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "User ID=root;Password=myPassword;Host=myTargetServer;Port=5432;Database=myDataBase;" --folder c:\exported\
+OmniaMigrationTool.exe import --tenant MyTenant --connection-string "User ID=root;Password=myPassword;Host=myTargetServer;Port=5432;Database=myDataBase;" --folder c:\exported\
 ```
 
 Make sure that you provide to the folder argument the folder exported in step 3.1.
@@ -102,7 +102,7 @@ Use the command Import-files to import the files existing in the V2 Source to th
 Example:
 
 ```
-OmniaMigrationTool.exe import-files --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "DefaultEndpointsProtocol=http;AccountName=myAccount;AccountKey=myKey;" --folder c:\exportedfiles\ --mappings c:\exportedfiles\
+OmniaMigrationTool.exe import-files --tenant MyTenant --connection-string "DefaultEndpointsProtocol=http;AccountName=myAccount;AccountKey=myKey;" --folder c:\exportedfiles\ --mappings c:\exportedfiles\
 ```
 
 Make sure that you provide to the folder argument the folder exported in step 3.2.
@@ -121,7 +121,7 @@ To execute this step you will need an API Client to invoke the API, and that API
 Example:
 
 ```
-OmniaMigrationTool.exe import-users --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --folder c:\exportedusers\ -e https:\\myomnia.com --client-id MYCLIENTID --client-secret MYCLIENTSECRET
+OmniaMigrationTool.exe import-users --tenant MyTenant --folder c:\exportedusers\ -e https:\\myomnia.com --client-id MYCLIENTID --client-secret MYCLIENTSECRET
 ```
 
 Make sure that you provide to the folder argument the folder exported in step 3.3, where the *users.csv* is located.
