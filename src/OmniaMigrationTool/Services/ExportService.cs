@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using Omnia.Libraries.GenericExtensions;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -8,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using OmniaMigrationTool.Extensions;
 
 namespace OmniaMigrationTool.Services
 {
@@ -230,7 +230,8 @@ namespace OmniaMigrationTool.Services
                             }
 
                             // Rewrite series in case of documents
-                            if (definition.TargetKind.EqualsIgnoringCase("Document") && definition.SourceKind.EqualsIgnoringCase("Interaction"))
+                            if (definition.TargetKind.Equals("Document", StringComparison.InvariantCultureIgnoreCase) 
+                                && definition.SourceKind.Equals("Interaction", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 if (mapping.ContainsKey("_serie"))
                                 {
@@ -240,7 +241,7 @@ namespace OmniaMigrationTool.Services
                                 else if (!mapping.ContainsKey("_code"))
                                     mapping["_code"] = Guid.NewGuid().ToString("N");
                             }
-                            else if (definition.TargetKind.EqualsIgnoringCase("Document"))
+                            else if (definition.TargetKind.Equals("Document", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 mapping["_serie"] = "A";
                                 mapping["_number"] = currentNumber++;

@@ -1,11 +1,7 @@
 ﻿using IdentityModel.Client;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Omnia.Libraries.GenericExtensions;
 using System;
 using System.IO;
-using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;

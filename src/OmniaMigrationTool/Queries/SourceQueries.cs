@@ -1,5 +1,4 @@
-﻿using Omnia.Libraries.GenericExtensions;
-using System;
+﻿using System;
 using System.Linq;
 
 namespace OmniaMigrationTool.Queries
@@ -100,7 +99,7 @@ namespace OmniaMigrationTool.Queries
             var attributesFromEav = customAttributes.Where(c => !EntitySystemAttributes.Contains(c))
                 .ToArray();
 
-            if (kind.EqualsIgnoringCase("Interaction"))
+            if (kind.Equals("Interaction", StringComparison.InvariantCultureIgnoreCase))
             {
                 customJoin =
                     $"INNER JOIN [{tenant}].MisEntities mcomp on a.CompanyID = mcomp.ID ";
@@ -109,7 +108,7 @@ namespace OmniaMigrationTool.Queries
 
                 attributesFromEav = attributesFromEav.Where(c => !c.Equals("CompanyCode")).ToArray();
             }
-            else if (kind.EqualsIgnoringCase("Agent"))
+            else if (kind.Equals("Agent", StringComparison.InvariantCultureIgnoreCase))
             {
                 customJoin =
                     $"LEFT JOIN [{tenant}].Users us on a.UserID = us.ID ";
@@ -119,7 +118,9 @@ namespace OmniaMigrationTool.Queries
                 attributesFromEav = attributesFromEav.Where(c => !c.Equals("UserEmail") && !c.Equals("UserContactEmail")).ToArray();
             }
 
-            if (!(kind.EqualsIgnoringCase("MisEntityItem") || kind.EqualsIgnoringCase("Commitment") || kind.EqualsIgnoringCase("Event")))
+            if (!(kind.Equals("MisEntityItem", StringComparison.InvariantCultureIgnoreCase) || 
+                  kind.Equals("Commitment", StringComparison.InvariantCultureIgnoreCase) || 
+                  kind.Equals("Event", StringComparison.InvariantCultureIgnoreCase)))
             {
                 customJoin +=
                     $"LEFT JOIN [{tenant}].ApprovalStages aps on a.ApprovalStageID = aps.ID ";

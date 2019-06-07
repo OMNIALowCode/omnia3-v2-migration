@@ -5,7 +5,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Linq;
-using Omnia.Libraries.GenericExtensions;
+using OmniaMigrationTool.Extensions;
 
 namespace OmniaMigrationTool.Services
 {
