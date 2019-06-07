@@ -4,14 +4,13 @@ using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace OmniaMigrationTool.Services
 {
     internal class ExportUsersService
     {
-        private static Stopwatch stopwatch = new Stopwatch();
+        private static readonly Stopwatch stopwatch = new Stopwatch();
 
         private readonly Guid _sourceTenant;
         private readonly string _connectionString;

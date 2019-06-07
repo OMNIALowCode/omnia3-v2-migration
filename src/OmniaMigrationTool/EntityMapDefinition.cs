@@ -1,18 +1,17 @@
-﻿using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OmniaMigrationTool
 {
     internal class EntityMapDefinition
     {
-        public EntityMapDefinition(string sourceKind, string sourceCode, string targetKind, string targetCode, IList<AttributeMap> attributes,
+        public EntityMapDefinition(string sourceKind, string sourceCode, string targetKind, string targetCode,
+            IList<AttributeMap> attributes,
             IList<EntityMapDefinition> items = null,
             IList<EntityMapDefinition> commitments = null,
             IList<EntityMapDefinition> events = null
-            )
+        )
         {
             SourceKind = sourceKind;
             SourceCode = sourceCode;
@@ -44,12 +43,24 @@ namespace OmniaMigrationTool
 
         internal class AttributeMap
         {
+            [JsonConverter(typeof(StringEnumConverter))]
+            public enum AttributeType
+            {
+                Text,
+                Int,
+                Long,
+                Decimal,
+                Date,
+                Boolean,
+                File
+            }
+
             public AttributeMap(string source, string target,
                 AttributeType sourceType = AttributeType.Text,
                 AttributeType targetType = AttributeType.Text,
                 IList<AttributeValueMap> valueMapping = null,
                 string sourceCardinality = "1"
-                )
+            )
             {
                 Source = source;
                 Target = target;
@@ -70,18 +81,6 @@ namespace OmniaMigrationTool
             public IList<AttributeValueMap> ValueMapping { get; }
 
             public string SourceCardinality { get; }
-
-            [JsonConverter(typeof(StringEnumConverter))]
-            public enum AttributeType
-            {
-                Text,
-                Int,
-                Long,
-                Decimal,
-                Date,
-                Boolean,
-                File
-            }
 
             internal class AttributeValueMap
             {

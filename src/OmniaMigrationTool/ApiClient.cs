@@ -19,12 +19,10 @@ namespace OmniaMigrationTool
         private readonly string _clientId;
         private readonly string _clientSecret;
         private readonly Uri _identityEndpoint;
-        //private readonly ILogger<ApiClient> _logger;
         private readonly MemoryCache _cache;
 
-        public ApiClient(/*ILogger<ApiClient> logger, */Uri apiEndpoint, Uri identityEndpoint, string clientId, string clientSecret, MemoryCache cache)
+        public ApiClient(Uri apiEndpoint, Uri identityEndpoint, string clientId, string clientSecret, MemoryCache cache)
         {
-            //_logger = logger;
             _apiEndpoint = apiEndpoint;
             _identityEndpoint = identityEndpoint;
             _clientId = clientId;
@@ -63,19 +61,15 @@ namespace OmniaMigrationTool
         {
             if (!ignoringCache && _cache.TryGetValue("access_token", out string accessToken))
             {
-                // _logger.LogDebug("Access token retrieved from cache");
                 return accessToken;
             }
-
-            // _logger.LogDebug("Access token isn't in cache. Will be retrieved from API");
-
+            
             // discover endpoints from metadata
             var discoveryClient = new DiscoveryClient(_identityEndpoint.ToString()) { Policy = { RequireHttps = false } };
 
             var disco = await discoveryClient.GetAsync();
             if (disco.IsError)
             {
-                // _logger.LogError("Error invoking the Discovery Endpoint: {Error}", disco.Error);
                 throw new InvalidDataException($"Error invoking the Discovery Endpoint: {disco.Error}");
             }
 
@@ -92,7 +86,6 @@ namespace OmniaMigrationTool
                 return tokenResponse.AccessToken;
             }
 
-            // _logger.LogError("Error requesting a new Token: {Error}", tokenResponse.Error);
             throw new InvalidDataException($"Error requesting a new Token: {tokenResponse.Error}");
 
         }

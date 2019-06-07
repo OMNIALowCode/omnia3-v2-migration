@@ -6,18 +6,17 @@ namespace OmniaMigrationTool
     public sealed class TempDirectory : IDisposable
     {
         private string _path;
-
         public TempDirectory()
             : this(System.IO.Path.GetTempFileName())
         {
             CreateDirectory();
         }
 
-        public TempDirectory(string path)
+        private TempDirectory(string path)
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new ArgumentNullException("path cannot be null or empty");
+                throw new ArgumentNullException(path);
             }
             _path = path;
         }

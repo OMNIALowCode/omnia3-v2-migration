@@ -3,29 +3,25 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace OmniaMigrationTool.Services
 {
     internal class ImportUsersService
     {
-        private static Stopwatch stopwatch = new Stopwatch();
+        private static readonly Stopwatch _stopwatch = new Stopwatch();
 
         private readonly string _folderPath;
         private readonly string _tenantCode;
-        private readonly string _apiEndpoint;
         private readonly ApiClient _apiClient;
 
         public ImportUsersService(string folderPath, string tenant, string apiEndpoint, string clientId, string cliendSecret)
         {
             _folderPath = folderPath;
             _tenantCode = tenant;
-            _apiEndpoint = apiEndpoint;
             _apiClient = new ApiClient(new Uri(new Uri(apiEndpoint), "/api/v1/"), new Uri(new Uri(apiEndpoint), "/identity/"), clientId, cliendSecret, new MemoryCache(new MemoryCacheOptions()));
         }
 
@@ -33,13 +29,13 @@ namespace OmniaMigrationTool.Services
         {
             Console.WriteLine($"Reading from folder: {_folderPath}");
 
-            stopwatch.Start();
+            _stopwatch.Start();
 
             await Process(_folderPath);
 
-            stopwatch.Stop();
+            _stopwatch.Stop();
 
-            Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
+            Console.WriteLine("Time elapsed: {0}", _stopwatch.Elapsed);
         }
 
         private async Task Process(string folderPath)
@@ -52,8 +48,8 @@ namespace OmniaMigrationTool.Services
 
                 foreach (var role in rolesData)
                 {
+                    const int requestSize = 25;
                     var currentIteration = 0;
-                    var requestSize = 25;
                     var remainingUsersToProcess = role.Value.Count;
 
                     Console.WriteLine($"Updating role '{role.Key}' ({role.Value.Count} users)");
@@ -89,11 +85,11 @@ namespace OmniaMigrationTool.Services
             }
         }
 
-        private Dictionary<string, List<string>> ProcessFileContent(string[] fileContent)
+        private static Dictionary<string, List<string>> ProcessFileContent(string[] fileContent)
         {
             var rolesData = new Dictionary<string, List<string>>();
 
-            for (int i = 1; i < fileContent.Length; i++)
+            for (var i = 1; i < fileContent.Length; i++)
             {
                 var lineContent = fileContent[i].Split(',');
 
@@ -119,7 +115,7 @@ namespace OmniaMigrationTool.Services
 
         private Task UpdateRole(string role, List<string> users)
         {
-            JsonPatchDocument patch = new JsonPatchDocument();
+            var patch = new JsonPatchDocument();
 
             foreach (var user in users)
             {

@@ -125,14 +125,13 @@ namespace OmniaMigrationTool.Services
 
         private async Task<IList<Dictionary<string, object>>> MapEntity(SqlConnection conn, EntityMapDefinition definition, StreamWriter fileMappingStream)
         {
-            int currentNumber = 1;
+            var currentNumber = 1;
 
             var result = new List<Dictionary<string, object>>();
             var itemDictionary = new Dictionary<string, List<ItemProcessed>>();
             var commitmentDictionary = new Dictionary<string, List<ItemProcessed>>();
             var eventDictionary = new Dictionary<string, List<ItemProcessed>>();
-            var cardinalityDictionary = new Dictionary<long, Dictionary<string, List<string>>>();
-            var approvalTrailDictionary = new Dictionary<long, List<Dictionary<string, object>>>();
+            
 
             foreach (var item in definition.Items)
                 itemDictionary.Add(item.SourceCode, await GetItems(conn, item, definition, fileMappingStream));
@@ -143,8 +142,8 @@ namespace OmniaMigrationTool.Services
             foreach (var item in definition.Events)
                 eventDictionary.Add(item.SourceCode, await GetTransactionalEntity(conn, item, definition, fileMappingStream));
 
-            cardinalityDictionary = await GetAttributesWithCardinalityN(definition.SourceCode, conn);
-            approvalTrailDictionary = await GetApprovalTrails(conn, definition.SourceCode, definition.Trail, definition, fileMappingStream);
+            var cardinalityDictionary = await GetAttributesWithCardinalityN(definition.SourceCode, conn);
+            var approvalTrailDictionary = await GetApprovalTrails(conn, definition.SourceCode, definition.Trail, definition, fileMappingStream);
 
             using (var command = new SqlCommand(
                 Queries.SourceQueries.EntityQuery(_sourceTenant,

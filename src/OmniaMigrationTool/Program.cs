@@ -11,8 +11,8 @@ namespace OmniaMigrationTool
 {
     internal class Program
     {
-        private static string _correlationId = Guid.NewGuid().ToString("N");
-        private static string _eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
+        private static readonly string _correlationId = Guid.NewGuid().ToString("N");
+        private static readonly string _eventMetadata = @"{""""eventClrType"""": """"Omnia.Libraries.Core.Events.EntityDataCreated""""}";
 
         private static int Main(string[] args)
         {
@@ -21,12 +21,15 @@ namespace OmniaMigrationTool
 
             var app = new CommandLineApplication();
 
+            app.HelpOption("-h | --help");
+
             app.Command("template", (command) =>
             {
-                command.Description = "Create mapping file template";
+                command.HelpOption("-h | --help");
+                command.Description = "Create mapping file template from the Source Tenant model.";
 
-                var tenantOption = command.Option("--t", "Export template tenant", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("--c", "Export template connection string", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("-t | --tenant", "Export template tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Export template connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -39,11 +42,12 @@ namespace OmniaMigrationTool
 
             app.Command("export", (command) =>
             {
+                command.HelpOption("-h | --help");
                 command.Description = "Export data from source system.";
 
-                var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
-                var mappingOption = command.Option("--m", "Export mapping", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("-t | --tenant", "Tenant to export", CommandOptionType.SingleValue);
+                var mappingOption = command.Option("-m | --mapping", "Mapping file", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -60,11 +64,12 @@ namespace OmniaMigrationTool
 
             app.Command("import", (command) =>
             {
+                command.HelpOption("-h | --help");
                 command.Description = "Import data to destination system.";
 
-                var folderOption = command.Option("--f", "Import folder path", CommandOptionType.SingleValue);
-                var tenantOption = command.Option("--t", "Import tenant", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("--c", "Import connection string", CommandOptionType.SingleValue);
+                var folderOption = command.Option("-f | --folder", "Import folder path", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("-t | --tenant", "Import to tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -77,15 +82,14 @@ namespace OmniaMigrationTool
             });
 
 
-
-
             app.Command("export-files", (command) =>
             {
+                command.HelpOption("-h | --help");
                 command.Description = "Export files from source system.";
 
-                var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
-                var encryptionKeyOption = command.Option("--ek", "Export storage Encryption Key", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("-t | --tenant", "Tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Connection string", CommandOptionType.SingleValue);
+                var encryptionKeyOption = command.Option("-ek | --encryption-key", "Export storage Encryption Key", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -99,10 +103,11 @@ namespace OmniaMigrationTool
 
             app.Command("export-users", (command) =>
             {
+                command.HelpOption("-h | --help");
                 command.Description = "Export users data from source system.";
 
-                var tenantOption = command.Option("--t", "Export tenant", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("--c", "Export connection string", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("-t | --tenant", "Tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -116,13 +121,14 @@ namespace OmniaMigrationTool
 
             app.Command("import-users", (command) =>
             {
+                command.HelpOption("-h | --help");
                 command.Description = "Import users data from source system.";
 
-                var folderOption = command.Option("--f", "Import folder path", CommandOptionType.SingleValue);
-                var tenantOption = command.Option("--t", "Import tenant", CommandOptionType.SingleValue);
-                var apiAddressOption = command.Option("--e", "Import API endpoint", CommandOptionType.SingleValue);
-                var clientIdOption = command.Option("--clientId", "API Client's ID", CommandOptionType.SingleValue);
-                var clientSecretOption = command.Option("--clientSecret ", "API Client's Secret", CommandOptionType.SingleValue);
+                var folderOption = command.Option("-f | --folder", "Import folder path", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("-t | --tenant", "Import to tenant", CommandOptionType.SingleValue);
+                var apiAddressOption = command.Option("-e | --endpoint", "Import API endpoint", CommandOptionType.SingleValue);
+                var clientIdOption = command.Option("-ci | --client-id", "API Client's ID", CommandOptionType.SingleValue);
+                var clientSecretOption = command.Option("-cs | --client-secret ", "API Client's Secret", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {
@@ -136,12 +142,13 @@ namespace OmniaMigrationTool
 
             app.Command("import-files", (command) =>
             {
+                command.HelpOption("-h | --help");
                 command.Description = "Export files from source system.";
 
-                var mappingsFolderOption = command.Option("--m", "Mappings folder", CommandOptionType.SingleValue);
-                var filesFolderOption = command.Option("--f", "Files folder", CommandOptionType.SingleValue);
-                var tenantOption = command.Option("--t", "Import tenant", CommandOptionType.SingleValue);
-                var connectionStringOption = command.Option("--c", "Import connection string", CommandOptionType.SingleValue);
+                var mappingsFolderOption = command.Option("-m | --mappings", "Mappings folder", CommandOptionType.SingleValue);
+                var filesFolderOption = command.Option("-f | --folder", "Files folder", CommandOptionType.SingleValue);
+                var tenantOption = command.Option("-t | --tenant", "Import to tenant", CommandOptionType.SingleValue);
+                var connectionStringOption = command.Option("-c | --connection-string", "Import connection string", CommandOptionType.SingleValue);
 
                 command.OnExecute(() =>
                 {

@@ -11,7 +11,7 @@ namespace OmniaMigrationTool.Services
 {
     public class ExportBlobsService
     {
-        private static Stopwatch stopwatch = new Stopwatch();
+        private static readonly Stopwatch _stopwatch = new Stopwatch();
 
         private readonly Guid _sourceTenant;
         private readonly string _connectionString;
@@ -32,24 +32,24 @@ namespace OmniaMigrationTool.Services
 
             Directory.CreateDirectory(Path.Combine(tempDir.Path, "files"));
 
-            stopwatch.Start();
+            _stopwatch.Start();
 
             await Process(tempDir.Path);
 
-            stopwatch.Stop();
+            _stopwatch.Stop();
 
-            Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
+            Console.WriteLine("Time elapsed: {0}", _stopwatch.Elapsed);
         }
 
         private async Task Process(string outputPath)
         {
             try
             {
-                var storageAccount = CloudStorageAccount.Parse(this._connectionString);
+                var storageAccount = CloudStorageAccount.Parse(_connectionString);
 
                 var blobClient = storageAccount.CreateCloudBlobClient();
 
-                var container = blobClient.GetContainerReference($"{this._sourceTenant.ToString("N").ToLowerInvariant()}");
+                var container = blobClient.GetContainerReference($"{_sourceTenant.ToString("N").ToLowerInvariant()}");
 
                 BlobContinuationToken blobContinuationToken = null;
                 do
@@ -57,18 +57,19 @@ namespace OmniaMigrationTool.Services
                     var results = await container.ListBlobsSegmentedAsync("Binary", true, BlobListingDetails.All, null, blobContinuationToken, null, null);
 
                     blobContinuationToken = results.ContinuationToken;
-                    foreach (CloudBlockBlob file in results.Results)
+                    foreach (var listBlobItem in results.Results)
                     {
+                        var file = (CloudBlockBlob) listBlobItem;
                         var fileName = GetFileName("Binary", file.Name);
                         var destinationFile = Path.Combine(outputPath, $"files/{fileName}");
                         Console.WriteLine("Downloading file {0}", fileName);
 
-                        using (MemoryStream encryptedMemoryStream = new MemoryStream())
+                        using (var encryptedMemoryStream = new MemoryStream())
                         {
                             await file.DownloadToStreamAsync(encryptedMemoryStream);
 
-                            byte[] encryptedArray = encryptedMemoryStream.ToArray();
-                            var decryptedStream = new MemoryStream(DecryptByteArray(encryptedArray, this._encryptionKey));
+                            var encryptedArray = encryptedMemoryStream.ToArray();
+                            var decryptedStream = new MemoryStream(DecryptByteArray(encryptedArray, _encryptionKey));
 
                             await File.WriteAllBytesAsync(destinationFile, decryptedStream.ToArray());
                         }
@@ -82,12 +83,12 @@ namespace OmniaMigrationTool.Services
             }
         }
 
-        private string GetFileName(string sourceFolder, string sourceFileName) => sourceFileName.Replace($"{sourceFolder}/", "");
+        private static string GetFileName(string sourceFolder, string sourceFileName) => sourceFileName.Replace($"{sourceFolder}/", "");
 
         // File decryption (code copied from OMNIA v2)
-        public static byte[] DecryptByteArray(byte[] encryptedArray, string key)
+        private static byte[] DecryptByteArray(byte[] encryptedArray, string key)
         {
-            using (Rijndael rijAlg = Rijndael.Create())
+            using (var rijAlg = Rijndael.Create())
             {
                 rijAlg.Key = Encoding.ASCII.GetBytes(key);
                 rijAlg.IV = Encoding.ASCII.GetBytes(key.Substring(0, 16));
@@ -101,7 +102,7 @@ namespace OmniaMigrationTool.Services
                         return PerformCryptography(decryptor, encryptedArray);
                     }
                 }
-                catch (System.Security.Cryptography.CryptographicException)
+                catch (CryptographicException)
                 {
                     try
                     {
@@ -112,7 +113,7 @@ namespace OmniaMigrationTool.Services
                             return PerformCryptography(decryptor, encryptedArray);
                         }
                     }
-                    catch (System.Security.Cryptography.CryptographicException)
+                    catch (CryptographicException)
                     {
                         // If can't decrypt due to CryptoException return the original data
                         return encryptedArray;

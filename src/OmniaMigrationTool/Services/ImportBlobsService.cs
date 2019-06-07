@@ -1,19 +1,17 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
+
 
 namespace OmniaMigrationTool.Services
 {
     public class ImportBlobsService
     {
-        private static Stopwatch stopwatch = new Stopwatch();
+        private static readonly Stopwatch stopwatch = new Stopwatch();
 
         private readonly string _mappingsFolderPath;
         private readonly string _filesFolderPath;
@@ -50,29 +48,30 @@ namespace OmniaMigrationTool.Services
 
                 var blobContainer = await GetBlobContainer(_connectionString, _sourceTenant);
 
-                for (int i = 1; i < filesMapping.Length; i++)
+                for (var i = 1; i < filesMapping.Length; i++)
                 {
                     var fileMappingSplit = filesMapping[i].Split(',');
 
-                    if (fileMappingSplit.Length == 2 && fileMappingSplit.All(f => !string.IsNullOrEmpty(f.Trim())))
+                    if (fileMappingSplit.Length != 2 ||
+                        fileMappingSplit.Any(f => string.IsNullOrEmpty(f.Trim()))) continue;
+
+                    var sourceFileName = fileMappingSplit[0].Replace("Binary/", "");
+                    var targetFileName = fileMappingSplit[1];
+
+                    Console.Write($"Importing file: {sourceFileName}.");
+
+                    var exportedFilePath = exportedFiles.FirstOrDefault(f => f.EndsWith($"\\{sourceFileName}", StringComparison.InvariantCultureIgnoreCase));
+                    if (string.IsNullOrEmpty(exportedFilePath))
                     {
-                        var sourceFileName = fileMappingSplit[0].Replace("Binary/", "");
-                        var targetFileName = fileMappingSplit[1];
-
-                        Console.Write($"Importing file: {sourceFileName}.");
-
-                        var exportedFilePath = exportedFiles.FirstOrDefault(f => f.EndsWith($"\\{sourceFileName}", StringComparison.InvariantCultureIgnoreCase));
-                        if (string.IsNullOrEmpty(exportedFilePath))
-                        {
-                            Console.WriteLine($"File not found in exported files folder - ignored.");
-                            continue;
-                        }
-
-                        Console.WriteLine();
-
-                        await UploadFile(blobContainer, exportedFilePath, targetFileName);
-                        System.Threading.Thread.Sleep(100);
+                        Console.WriteLine($"File not found in exported files folder - ignored.");
+                        continue;
                     }
+
+                    Console.WriteLine();
+
+                    await UploadFile(blobContainer, exportedFilePath, targetFileName);
+                    System.Threading.Thread.Sleep(100);
+
                 }
             }
             catch (Exception ex)
@@ -94,10 +93,10 @@ namespace OmniaMigrationTool.Services
             return container;
         }
 
-        private Task UploadFile(CloudBlobContainer blobContainer, string fileToImportPath, string targetFileName)
+        private static Task UploadFile(CloudBlobContainer blobContainer, string fileToImportPath, string targetFileName)
         {
             var uploadPath = $"Application/Data/{targetFileName}";
-            CloudBlockBlob blobToUpload = blobContainer.GetBlockBlobReference(uploadPath);
+            var blobToUpload = blobContainer.GetBlockBlobReference(uploadPath);
             return blobToUpload.UploadFromFileAsync(fileToImportPath);
         }
     }

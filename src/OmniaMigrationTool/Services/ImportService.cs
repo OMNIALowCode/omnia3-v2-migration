@@ -23,7 +23,7 @@ namespace OmniaMigrationTool.Services
 
         public async Task Import()
         {
-            string targetSchema = null;
+            string targetSchema;
 
             var builder = new NpgsqlConnectionStringBuilder(_connectionString);
             using (var conn = new NpgsqlConnection(builder.ConnectionString))
@@ -39,7 +39,7 @@ namespace OmniaMigrationTool.Services
                 }
             }
 
-            if (String.IsNullOrEmpty(targetSchema))
+            if (string.IsNullOrEmpty(targetSchema))
                 throw new InvalidOperationException($"Import - Schema for tenant '{_tenantCode}' not found");
 
             var outputMessageBuilder = new StringBuilder();
@@ -57,7 +57,7 @@ namespace OmniaMigrationTool.Services
                 EnableRaisingEvents = true,
                 StartInfo = new ProcessStartInfo("cmd.exe")
                 {
-                    Arguments = $@"/c ""SET ""PGPASSWORD={builder.Password}""&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline.ToString()}",
+                    Arguments = $@"/c ""SET ""PGPASSWORD={builder.Password}""&& {Path.Combine(Directory.GetCurrentDirectory(), "Tools\\psql.exe")} -U {builder.Username} -p {builder.Port} -h {builder.Host} -d {builder.Database} {commandPipeline}",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     UseShellExecute = false,
                     CreateNoWindow = true,

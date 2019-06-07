@@ -104,11 +104,8 @@ namespace OmniaMigrationTool.Services
         private class Numerator
         {
             public string TypeCode { get; set; }
-
             public string CompanyCode { get; set; }
-
             public string ShortCode { get; set; }
-
             public long LastUsedValue { get; set; }
         }
     }
