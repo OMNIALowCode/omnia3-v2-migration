@@ -141,5 +141,68 @@ When mapping custom attributes from V2, the Source Type should be "Text" even wh
 
 When mapping an Item, Event or Commitment, the Target Code should be name of the target Attribute, instead of the actual name of the Type.
 
+## Mapping Approval Trail
+
+Since the approval trail should be modeled in the V3, you can map the V2 approval trail to an Attribute Collection in the target entity.
+To do that, in the trail property of the entity mapping file, define an object with the mapping like the example bellow.
+
+```
+"trail": {
+            "sourceKind": "UserDefinedEntity",
+            "sourceCode": "ApprovalHistory",
+            "targetKind": "GenericEntity",
+            "targetCode": "ApprovalHistory",
+            "attributes": [{
+                    "source": "FromCode",
+                    "target": "FromStage",
+                    "sourceType": "Text",
+                    "targetType": "Text",
+                    "valueMapping": [],
+                    "sourceCardinality": "1"
+                },
+                {
+                    "source": "ToCode",
+                    "target": "ToStage",
+                    "sourceType": "Text",
+                    "targetType": "Text",
+                    "valueMapping": [],
+                    "sourceCardinality": "1"
+                },
+                {
+                    "source": "Email",
+                    "target": "User",
+                    "sourceType": "Text",
+                    "targetType": "Text",
+                    "valueMapping": [],
+                    "sourceCardinality": "1"
+                },
+                {
+                    "source": "Note",
+                    "target": "Notes",
+                    "sourceType": "Text",
+                    "targetType": "Text",
+                    "valueMapping": [],
+                    "sourceCardinality": "1"
+                },
+                {
+                    "source": "Date",
+                    "target": "DecisionDate",
+                    "sourceType": "Date",
+                    "targetType": "Date",
+                    "valueMapping": [],
+                    "sourceCardinality": "1"
+                }
+            ]
+        }
+```
+
+You have access to the following properties from the V2:
+ - FromCode: From Approval Stage
+ - ToCode: To Approval Stage
+ - Email: Approver email
+ - Note: Approval Note
+ - Date: Approval Date
+ 
+
 # License
 OMNIA 3 Samples are available under the MIT license.
