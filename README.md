@@ -148,52 +148,52 @@ To do that, in the trail property of the entity mapping file, define an object w
 
 ```
 "trail": {
-            "sourceKind": "UserDefinedEntity",
-            "sourceCode": "ApprovalHistory",
-            "targetKind": "GenericEntity",
-            "targetCode": "ApprovalHistory",
-            "attributes": [{
-                    "source": "FromCode",
-                    "target": "FromStage",
-                    "sourceType": "Text",
-                    "targetType": "Text",
-                    "valueMapping": [],
-                    "sourceCardinality": "1"
-                },
-                {
-                    "source": "ToCode",
-                    "target": "ToStage",
-                    "sourceType": "Text",
-                    "targetType": "Text",
-                    "valueMapping": [],
-                    "sourceCardinality": "1"
-                },
-                {
-                    "source": "Email",
-                    "target": "User",
-                    "sourceType": "Text",
-                    "targetType": "Text",
-                    "valueMapping": [],
-                    "sourceCardinality": "1"
-                },
-                {
-                    "source": "Note",
-                    "target": "Notes",
-                    "sourceType": "Text",
-                    "targetType": "Text",
-                    "valueMapping": [],
-                    "sourceCardinality": "1"
-                },
-                {
-                    "source": "Date",
-                    "target": "DecisionDate",
-                    "sourceType": "Date",
-                    "targetType": "Date",
-                    "valueMapping": [],
-                    "sourceCardinality": "1"
-                }
-            ]
-        }
+"sourceKind": "UserDefinedEntity",
+"sourceCode": "ApprovalHistory",
+"targetKind": "GenericEntity",
+"targetCode": "ApprovalHistory",
+"attributes": [{
+        "source": "FromCode",
+        "target": "FromStage",
+        "sourceType": "Text",
+        "targetType": "Text",
+        "valueMapping": [],
+        "sourceCardinality": "1"
+    },
+    {
+        "source": "ToCode",
+        "target": "ToStage",
+        "sourceType": "Text",
+        "targetType": "Text",
+        "valueMapping": [],
+        "sourceCardinality": "1"
+    },
+    {
+        "source": "Email",
+        "target": "User",
+        "sourceType": "Text",
+        "targetType": "Text",
+        "valueMapping": [],
+        "sourceCardinality": "1"
+    },
+    {
+        "source": "Note",
+        "target": "Notes",
+        "sourceType": "Text",
+        "targetType": "Text",
+        "valueMapping": [],
+        "sourceCardinality": "1"
+    },
+    {
+        "source": "Date",
+        "target": "DecisionDate",
+        "sourceType": "Date",
+        "targetType": "Date",
+        "valueMapping": [],
+        "sourceCardinality": "1"
+    }
+]
+}
 ```
 
 You have access to the following properties from the V2:
@@ -202,7 +202,34 @@ You have access to the following properties from the V2:
  - Email: Approver email
  - Note: Approval Note
  - Date: Approval Date
- 
+
+## Mapping constant values
+
+You can use the Value Mapping list to define a rule to convert constant values like the example bellow.
+Use that to map approval stages for example.
+
+```
+{
+    "source": "ApprovalStageCode",
+    "target": "ApprovalStage",
+    "sourceType": "Text",
+    "targetType": "Text",
+    "valueMapping": [{
+            "source": "HRRequests_Pending",
+            "target": "Draft"
+        },
+        {
+            "source": "HRRequests_Approval",
+            "target": "Approval"
+        },
+        {
+            "source": "HRRequests_Completed",
+            "target": "Completed"
+        }
+    ],
+    "sourceCardinality": "1"
+}
+```
 
 # License
 OMNIA 3 Samples are available under the MIT license.
