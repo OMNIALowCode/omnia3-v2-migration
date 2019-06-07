@@ -10,11 +10,16 @@ The migration process will take into consideration a mapping file that should de
 
 The migration tool is a command line tool. To know the available commands just run:
 
-`OmniaMigrationTool.exe --help`
+```
+OmniaMigrationTool.exe --help
+```
 
 To know the arguments of a given command, just execute from the command line:
 
-`OmniaMigrationTool.exe _COMMAND_ --help`
+```
+OmniaMigrationTool.exe _COMMAND_ --help
+```
+
 Where the \_COMMAND_ is the name of one of the commands in the command line.
 
 ## 2. Creating a mapping template
@@ -26,7 +31,9 @@ To export the template use the template command.
 
 Example:
 
-`OmniaMigrationTool.exe template --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;"`
+```
+OmniaMigrationTool.exe template --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;"
+```
 
 The console will output the file path where the mapping file is.
 
@@ -42,7 +49,9 @@ Use the command Export to export the data existing in the V2 Source database.
 
 Example:
 
-`OmniaMigrationTool.exe export --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;" --mapping c:\mapping.json`
+```
+OmniaMigrationTool.exe export --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;" --mapping c:\mapping.json
+```
 
 This command will generate a folder with the data that must be imported to the target database.
 Make sure you keep the files.
@@ -53,7 +62,9 @@ Use the command export-files to export the files existing in the V2 Source blob 
 
 Example:
 
-`OmniaMigrationTool.exe export-files --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "DefaultEndpointsProtocol=http;AccountName=myAccount;AccountKey=myKey;" --encryption-key "MYKEY"`
+```
+OmniaMigrationTool.exe export-files --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "DefaultEndpointsProtocol=http;AccountName=myAccount;AccountKey=myKey;" --encryption-key "MYKEY"
+```
 
 This command will generate a folder with the files attached in the V2.
 
@@ -63,7 +74,9 @@ Use the command export-users to export the users existing in the V2 Source tenan
 
 Example:
 
-`OmniaMigrationTool.exe export-users --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;"`
+```
+OmniaMigrationTool.exe export-users --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "Server=myServerAddress;Database=myDataBase;User Id=myUsername;Password=myPassword;"
+```
 
 
 ## 4. Import
@@ -76,7 +89,9 @@ Use the command Import to import the data existing in the V2 Source database.
 
 Example:
 
-`OmniaMigrationTool.exe import --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "User ID=root;Password=myPassword;Host=myTargetServer;Port=5432;Database=myDataBase;" --folder c:\exported\`
+```
+OmniaMigrationTool.exe import --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "User ID=root;Password=myPassword;Host=myTargetServer;Port=5432;Database=myDataBase;" --folder c:\exported\
+```
 
 Make sure that you provide to the folder argument the folder exported in step 3.1.
 
@@ -86,7 +101,9 @@ Use the command Import-files to import the files existing in the V2 Source to th
 
 Example:
 
-`OmniaMigrationTool.exe import-files --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "DefaultEndpointsProtocol=http;AccountName=myAccount;AccountKey=myKey;" --folder c:\exportedfiles\ --mappings c:\exportedfiles\`
+```
+OmniaMigrationTool.exe import-files --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --connection-string "DefaultEndpointsProtocol=http;AccountName=myAccount;AccountKey=myKey;" --folder c:\exportedfiles\ --mappings c:\exportedfiles\
+```
 
 Make sure that you provide to the folder argument the folder exported in step 3.2.
 
@@ -103,9 +120,18 @@ To execute this step you will need an API Client to invoke the API, and that API
 
 Example:
 
-`OmniaMigrationTool.exe import-users --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --folder c:\exportedusers\ -e https:\\myomnia.com --client-id MYCLIENTID --client-secret MYCLIENTSECRET`
+```
+OmniaMigrationTool.exe import-users --tenant 95c7899e-3957-42bd-acb2-bb5e25226163 --folder c:\exportedusers\ -e https:\\myomnia.com --client-id MYCLIENTID --client-secret MYCLIENTSECRET
+```
 
 Make sure that you provide to the folder argument the folder exported in step 3.3, where the *users.csv* is located.
+
+# Mapping File - How to
+
+## Mapping Agent Users
+
+In V2, an agent can be related to a user.
+When mapping an Agent, you can access to the *UserEmail* and *UserContactEmail* attributes and map them to an attribute in the target.
 
 
 # License
