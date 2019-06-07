@@ -71,6 +71,7 @@ namespace OmniaMigrationTool.Services
                         Console.WriteLine();
 
                         await UploadFile(blobContainer, exportedFilePath, targetFileName);
+                        System.Threading.Thread.Sleep(100);
                     }
                 }
             }

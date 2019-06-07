@@ -75,6 +75,10 @@ namespace OmniaMigrationTool.Services
 
                         remainingUsersToProcess = remainingUsersToProcess - usersToProcess.Count();
                         currentIteration++;
+
+                        var processed = role.Value.Count - remainingUsersToProcess;
+
+                        Console.WriteLine($"{role.Key}: {processed} of {role.Value.Count}");
                     }
                 }
             }

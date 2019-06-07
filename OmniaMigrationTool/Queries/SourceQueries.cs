@@ -149,12 +149,16 @@ namespace OmniaMigrationTool.Queries
         public static string UsersInRolesQuery(Guid tenant)
         {
             return $@"
-                SELECT users.Email, roles.Code as DomainRole FROM [{tenant}].UsersInDomainRoles usersInRoles
+                SELECT users.Email, roles.Code as DomainRole  FROM [{tenant}].UsersInDomainRoles usersInRoles
                 INNER JOIN[{tenant}].Users users
                     ON usersInRoles.UserID = users.ID
                 INNER JOIN[{tenant}].DomainRoles roles
                     ON usersInRoles.DomainRoleID = roles.ID
-                WHERE Email NOT LIKE '%@connector%' AND Email<> 'master@mymis.biz'";
+                INNER JOIN [Auth].TenantUsers tu ON users.ID = tu.UserID AND tu.Status = 1
+                INNER JOIN [Auth].Tenants t ON tu.TenantID = t.ID AND t.Code = '{tenant}'
+                INNER JOIN [{tenant}].MisEntities_Agent a ON tu.UserID = a.UserID
+                INNER JOIN [{tenant}].MisEntities e ON a.ID = e.ID AND e.Inactive = 0
+                WHERE Email NOT LIKE '%@connector%' AND Email<> 'master@mymis.biz' ";
         }
     }
 }
