@@ -133,6 +133,9 @@ Make sure that you provide to the folder argument the folder exported in step 3.
 In V2, an agent can be related to a user.
 When mapping an Agent, you can access to the *UserEmail* and *UserContactEmail* attributes and map them to an attribute in the target.
 
+## Mapping non-base attributes
+
+When mapping custom attributes from V2, the Source Type should be "Text" even when the Target Type is Decimal or Int for example.
 
 # License
 OMNIA 3 Samples are available under the MIT license.
