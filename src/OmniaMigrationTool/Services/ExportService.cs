@@ -166,7 +166,7 @@ namespace OmniaMigrationTool.Services
                             {
                                 if (attribute.SourceCardinality == "1")
                                     MapAttribute(mapping, reader, attribute);
-                                else if (cardinalityDictionary.ContainsKey(sourceEntityId))
+                                else if (cardinalityDictionary.ContainsKey(sourceEntityId) && cardinalityDictionary[sourceEntityId].ContainsKey(attribute.Source))
                                     mapping[attribute.Target] = cardinalityDictionary[sourceEntityId][attribute.Source];
                             }
 
