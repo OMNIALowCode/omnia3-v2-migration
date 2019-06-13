@@ -246,6 +246,14 @@ namespace OmniaMigrationTool.Services
                                 mapping["_serie"] = "A";
                                 mapping["_number"] = currentNumber++;
                             }
+                            else if (definition.SourceKind.Equals("Interaction",
+                                StringComparison.InvariantCultureIgnoreCase) &&
+                                     !definition.TargetKind.Equals("Document", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                if (!mapping.ContainsKey("_code"))
+                                    mapping["_code"] =
+                                        $"{reader.GetString(reader.GetOrdinal("CompanyCode"))}_{reader.GetString(reader.GetOrdinal("NumberSerieCode"))}{reader.GetInt64(reader.GetOrdinal("Number"))}";
+                            }
 
                             foreach (var attribute in definition.Attributes.Where(a =>
                                 a.TargetType.Equals(EntityMapDefinition.AttributeMap.AttributeType.File)))
