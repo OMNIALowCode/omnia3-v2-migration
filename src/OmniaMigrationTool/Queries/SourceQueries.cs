@@ -28,7 +28,7 @@ namespace OmniaMigrationTool.Queries
           INNER JOIN [{0}].MisEntityTypes t ON me.MisEntityTypeID = t.ID
           {3}
           LEFT JOIN (SELECT * FROM (
-                        SELECT av.MisEntityID, ak.Name, coalesce(foreignme.code, av.VALUE) AS Code
+                        SELECT av.MisEntityID, ak.Name, string_agg(coalesce(foreignme.code, av.VALUE), ';') AS Code
                         FROM [{0}].AttributeKeys ak
                         INNER JOIN [{0}].MisEntityTypes t ON ak.MisEntityTypeID = t.ID
                         INNER JOIN [{0}].vwAttributeValues av ON ak.ID = av.AttributeKeyID
@@ -36,6 +36,7 @@ namespace OmniaMigrationTool.Queries
                         LEFT JOIN [{0}].RelationalRuleInstances rri on rr.ID = rri.RelationalRuleID and rri.PKID = av.id
                         LEFT JOIN [{0}].[MisEntities] foreignme on rri.FKID = foreignme.ID
                         WHERE t.Code = @code
+                        GROUP BY av.MisEntityID, ak.Name
                         ) AS p
             PIVOT (MIN([Code]) FOR [Name] IN ({2})) as pvt
         ) AS eav ON eav.MisEntityID = me.ID
@@ -51,7 +52,7 @@ namespace OmniaMigrationTool.Queries
           INNER JOIN [{0}].[MisEntities] rc on a.ResourceID = rc.ID
           INNER JOIN [{0}].MisEntityTypes t ON me.MisEntityTypeID = t.ID
           LEFT JOIN (SELECT * FROM (
-                        SELECT av.MisEntityID, ak.Name, coalesce(foreignme.code, av.VALUE) AS Code
+                        SELECT av.MisEntityID, ak.Name, string_agg(coalesce(foreignme.code, av.VALUE), ';') AS Code
                         FROM [{0}].AttributeKeys ak
                         INNER JOIN [{0}].MisEntityTypes t ON ak.MisEntityTypeID = t.ID
                         INNER JOIN [{0}].vwAttributeValues av ON ak.ID = av.AttributeKeyID
@@ -59,6 +60,7 @@ namespace OmniaMigrationTool.Queries
                         LEFT JOIN [{0}].RelationalRuleInstances rri on rr.ID = rri.RelationalRuleID and rri.PKID = av.id
                         LEFT JOIN [{0}].[MisEntities] foreignme on rri.FKID = foreignme.ID
                         WHERE t.Code = @code
+                        GROUP BY av.MisEntityID, ak.Name
                         ) AS p
             PIVOT (MIN([Code]) FOR [Name] IN ({2})) as pvt
         ) AS eav ON eav.MisEntityID = me.ID
