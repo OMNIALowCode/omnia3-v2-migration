@@ -368,6 +368,9 @@ namespace OmniaMigrationTool.Services
         {
             if (sourceColumnName.StartsWith("Parent."))
                 return sourceColumnName.Replace("Parent.", "");
+            
+            if (sourceColumnName.Equals("File"))
+                return "[File]";
 
             return sourceColumnName;
         }
@@ -470,7 +473,7 @@ namespace OmniaMigrationTool.Services
 
         private static void MapAttribute(IDictionary<string, object> data, IDataRecord reader, EntityMapDefinition.AttributeMap attribute)
         {
-            var sourceColumnName = MapSourceColumn(attribute.Source);
+            var sourceColumnName = MapSourceColumn(attribute.Source).Replace("[", "").Replace("]", "");
 
             if (reader.IsDBNull(reader.GetOrdinal(sourceColumnName))) return;
 
