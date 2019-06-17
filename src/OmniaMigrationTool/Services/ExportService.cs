@@ -522,6 +522,8 @@ namespace OmniaMigrationTool.Services
 
                         case EntityMapDefinition.AttributeMap.AttributeType.Decimal:
                             if (value is decimal) return value;
+                            if (value is string && value.ToString().Contains("%"))
+                                return Convert.ToDecimal(value.ToString().Replace("%", ""));
                             return Convert.ToDecimal(value);
 
                         case EntityMapDefinition.AttributeMap.AttributeType.Date:
