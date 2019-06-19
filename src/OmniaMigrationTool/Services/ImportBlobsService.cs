@@ -55,22 +55,31 @@ namespace OmniaMigrationTool.Services
                     if (fileMappingSplit.Length != 2 ||
                         fileMappingSplit.Any(f => string.IsNullOrEmpty(f.Trim()))) continue;
 
-                    var sourceFileName = fileMappingSplit[0].Replace("Binary/", "");
-                    var targetFileName = fileMappingSplit[1];
+                    var sourceFilesNames = fileMappingSplit[0].Replace("Binary/", "").Split(";");
+                    var targetFilesNames = fileMappingSplit[1].Split(";");
 
-                    Console.Write($"Importing file: {sourceFileName}.");
+                    if (sourceFilesNames.Length != targetFilesNames.Length)
+                        throw new Exception($"Number of source files ({sourceFilesNames.Length}) has to be equal to target files ({targetFilesNames.Length})");
 
-                    var exportedFilePath = exportedFiles.FirstOrDefault(f => f.EndsWith($"\\{sourceFileName}", StringComparison.InvariantCultureIgnoreCase));
-                    if (string.IsNullOrEmpty(exportedFilePath))
+                    for (var f = 0; f<sourceFilesNames.Length; f++)
                     {
-                        Console.WriteLine($"File not found in exported files folder - ignored.");
-                        continue;
+                        var sourceFileName = sourceFilesNames[f];
+                        var targetFileName = targetFilesNames[f];
+                        Console.Write($"Importing file: {sourceFileName}.");
+
+                        var exportedFilePath = exportedFiles.FirstOrDefault(f => f.EndsWith($"\\{sourceFileName}", StringComparison.InvariantCultureIgnoreCase));
+                        if (string.IsNullOrEmpty(exportedFilePath))
+                        {
+                            Console.WriteLine($"File not found in exported files folder - ignored.");
+                            continue;
+                        }
+
+                        Console.WriteLine();
+
+                        await UploadFile(blobContainer, exportedFilePath, targetFileName);
+                        System.Threading.Thread.Sleep(100);
+
                     }
-
-                    Console.WriteLine();
-
-                    await UploadFile(blobContainer, exportedFilePath, targetFileName);
-                    System.Threading.Thread.Sleep(100);
 
                 }
             }
