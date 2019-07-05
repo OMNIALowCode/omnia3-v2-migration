@@ -537,6 +537,10 @@ namespace OmniaMigrationTool.Services
                         default:
                             if (attribute.Target.Equals("_code"))
                                 return value.ToString().Substring(0, Math.Min(31, value.ToString().Length)); // TODO: Deal the the difference of size in codes
+                            // Remove spaces from the IncidentCategory code
+                            if (attribute.Target.Equals("IncidentCategory"))
+                                return value.ToString().Replace(" ", "");
+
                             return value.ToString();
                     }
                 }

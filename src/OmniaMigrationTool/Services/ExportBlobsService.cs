@@ -61,7 +61,8 @@ namespace OmniaMigrationTool.Services
                     {
                         var file = (CloudBlockBlob) listBlobItem;
                         var fileName = GetFileName("Binary", file.Name);
-                        var destinationFile = Path.Combine(outputPath, $"files/{fileName}");
+                        fileName = fileName.Replace(":", "%3A");
+                        var destinationFile = Path.Combine(outputPath, $"files\\{fileName}");
                         Console.WriteLine("Downloading file {0}", fileName);
 
                         using (var encryptedMemoryStream = new MemoryStream())
@@ -70,7 +71,6 @@ namespace OmniaMigrationTool.Services
 
                             var encryptedArray = encryptedMemoryStream.ToArray();
                             var decryptedStream = new MemoryStream(DecryptByteArray(encryptedArray, _encryptionKey));
-
                             await File.WriteAllBytesAsync(destinationFile, decryptedStream.ToArray());
                         }
                     }

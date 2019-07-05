@@ -63,11 +63,11 @@ namespace OmniaMigrationTool.Services
 
                     for (var f = 0; f<sourceFilesNames.Length; f++)
                     {
-                        var sourceFileName = sourceFilesNames[f];
+                        var sourceFileName = sourceFilesNames[f].Replace(":", "%3A");
                         var targetFileName = targetFilesNames[f];
                         Console.Write($"Importing file: {sourceFileName}.");
 
-                        var exportedFilePath = exportedFiles.FirstOrDefault(f => f.EndsWith($"\\{sourceFileName}", StringComparison.InvariantCultureIgnoreCase));
+                        var exportedFilePath = exportedFiles.FirstOrDefault(newF => newF.EndsWith($"\\{sourceFileName}", StringComparison.InvariantCultureIgnoreCase));
                         if (string.IsNullOrEmpty(exportedFilePath))
                         {
                             Console.WriteLine($"File not found in exported files folder - ignored.");
